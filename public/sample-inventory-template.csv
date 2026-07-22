@@ -1,0 +1,6 @@
+Product Name,Category,Brand,Quantity on Hand,Reorder Threshold,Reorder Quantity,Expiration Date,Storage Conditions,Sales Rate
+Whole Milk,Milk,FreshRoute Dairy,8,24,48,2026-07-26,Refrigerated 34–38°F,12
+2% Milk,Milk,FreshRoute Dairy,36,30,48,2026-08-01,Refrigerated 34–38°F,10
+Skim Milk,Milk,Valley Crest,0,18,36,2026-08-03,Refrigerated 34–38°F,6
+Greek Yogurt,Yogurt,Olympus Farms,22,20,40,2026-07-31,Refrigerated 34–38°F,4
+Cheddar Cheese,Cheese,Heritage Creamery,48,20,24,2026-09-05,Refrigerated 34–40°F,3
