@@ -2,6 +2,8 @@
 
 Inventory priority dashboard for food distribution companies. Know what needs attention first.
 
+Extracts key product data from spreadsheets and highlights items that are low in stock or nearing expiration.
+
 ## Stack
 
 - React + TypeScript + Vite
