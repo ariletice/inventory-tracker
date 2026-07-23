@@ -14,6 +14,7 @@ type AppShellProps = {
   onCloseMobile: () => void
   fileName?: string
   uploadedAt?: string
+  totalProducts?: number
 }
 
 export function AppShell({
@@ -26,6 +27,7 @@ export function AppShell({
   onCloseMobile,
   fileName,
   uploadedAt,
+  totalProducts,
 }: AppShellProps) {
   return (
     <div className="flex min-h-full bg-brand-bg">
@@ -41,6 +43,7 @@ export function AppShell({
           onMenuClick={onMenuClick}
           fileName={fileName}
           uploadedAt={uploadedAt}
+          totalProducts={totalProducts}
         />
         <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">{children}</main>
       </div>

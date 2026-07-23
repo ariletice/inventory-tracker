@@ -5,6 +5,7 @@ type HeaderProps = {
   onMenuClick: () => void
   fileName?: string
   uploadedAt?: string
+  totalProducts?: number
 }
 
 export function Header({
@@ -12,12 +13,18 @@ export function Header({
   onMenuClick,
   fileName,
   uploadedAt,
+  totalProducts,
 }: HeaderProps) {
-  const uploadedLabel = uploadedAt
-    ? new Date(uploadedAt).toLocaleString('en-US', {
+  const uploadedDate = uploadedAt
+    ? new Date(uploadedAt).toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
         year: 'numeric',
+      })
+    : null
+
+  const uploadedTime = uploadedAt
+    ? new Date(uploadedAt).toLocaleTimeString('en-US', {
         hour: 'numeric',
         minute: '2-digit',
       })
@@ -40,14 +47,17 @@ export function Header({
               Inventory Priority Dashboard
             </h1>
             <p className="mt-1 max-w-xl text-sm text-brand-muted">
-              Review the products that need attention today and what is coming
-              next.
+              See which products are out of stock, running low, or approaching
+              expiration.
             </p>
-            {fileName && (
-              <p className="mt-2 text-xs text-brand-muted">
-                Uploaded file:{' '}
-                <span className="font-medium text-brand-text">{fileName}</span>
-                {uploadedLabel ? ` · ${uploadedLabel}` : ''}
+            {typeof totalProducts === 'number' && (
+              <p className="mt-2 text-sm font-medium text-brand-navy">
+                {totalProducts} products successfully uploaded and analyzed
+              </p>
+            )}
+            {fileName && uploadedDate && uploadedTime && (
+              <p className="mt-1 text-xs text-brand-muted">
+                {fileName} · Uploaded {uploadedDate} at {uploadedTime}
               </p>
             )}
           </div>

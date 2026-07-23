@@ -7,7 +7,7 @@ import { PriorityTable } from '../components/inventory/PriorityTable'
 import { ProductDetailDrawer } from '../components/inventory/ProductDetailDrawer'
 import { useInventory } from '../context/InventoryContext'
 import {
-  getSummaryCounts,
+  getAlertCounts,
   prioritizeInventory,
   sortPrioritized,
 } from '../lib/priority'
@@ -60,7 +60,7 @@ export function DashboardPage() {
     [prioritized],
   )
 
-  const summary = useMemo(() => getSummaryCounts(prioritized), [prioritized])
+  const alertCounts = useMemo(() => getAlertCounts(products), [products])
 
   const goUpload = () => {
     resetToUpload()
@@ -110,6 +110,7 @@ export function DashboardPage() {
       onCloseMobile={() => setMobileOpen(false)}
       fileName={importState?.fileName}
       uploadedAt={importState?.uploadedAt}
+      totalProducts={alertCounts.productsUploaded}
     >
       <div className="mx-auto flex max-w-7xl flex-col gap-6">
         <section>
@@ -117,10 +118,10 @@ export function DashboardPage() {
             Inventory Overview
           </h2>
           <SummaryCards
-            totalProducts={summary.totalProducts}
-            needsAttention={summary.needsAttention}
-            nextInQueue={summary.nextInQueue}
-            noAction={summary.noAction}
+            productsUploaded={alertCounts.productsUploaded}
+            outOfStock={alertCounts.outOfStock}
+            belowReorderThreshold={alertCounts.belowReorderThreshold}
+            expiringWithin14Days={alertCounts.expiringWithin14Days}
           />
         </section>
 

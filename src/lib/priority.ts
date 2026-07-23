@@ -175,11 +175,40 @@ export function sortPrioritized(
   }
 }
 
-export function getSummaryCounts(products: PrioritizedProduct[]) {
-  const totalProducts = products.length
-  const needsAttention = products.filter((p) => p.tier === 'needsAttention').length
-  const nextInQueue = products.filter((p) => p.tier === 'nextInQueue').length
-  const noAction = products.filter((p) => p.tier === 'none').length
+export function getAlertCounts(products: InventoryProduct[]) {
+  const productsUploaded = products.length
 
-  return { totalProducts, needsAttention, nextInQueue, noAction }
+  const outOfStock = products.filter(
+    (product) => product.quantityOnHand === 0,
+  ).length
+
+  const belowReorderThreshold = products.filter(
+    (product) =>
+      product.quantityOnHand > 0 &&
+      product.quantityOnHand <= product.reorderThreshold,
+  ).length
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const fourteenDaysFromToday = new Date(today)
+  fourteenDaysFromToday.setDate(today.getDate() + 14)
+
+  const expiringWithin14Days = products.filter((product) => {
+    const expirationDate = new Date(product.expirationDate + 'T12:00:00')
+    if (Number.isNaN(expirationDate.getTime())) return false
+
+    expirationDate.setHours(0, 0, 0, 0)
+
+    return (
+      expirationDate >= today && expirationDate <= fourteenDaysFromToday
+    )
+  }).length
+
+  return {
+    productsUploaded,
+    outOfStock,
+    belowReorderThreshold,
+    expiringWithin14Days,
+  }
 }
