@@ -8,6 +8,7 @@ Extracts key product data from spreadsheets and highlights items that are low in
 
 - React + TypeScript + Vite
 - Tailwind CSS
+- React Router
 - SheetJS (`xlsx`) for CSV/XLSX import
 - lucide-react icons
 
@@ -18,15 +19,15 @@ npm install
 npm run dev
 ```
 
-Open the local URL shown in the terminal (typically `http://localhost:5173`).
+Open the local URL shown in the terminal (typically `http://localhost:5173`). The app opens on `/upload`.
 
-## Features
+## User flow
 
-- Sample FreshRoute dairy inventory loaded on first visit
-- Upload CSV or XLSX to replace inventory data
-- Rule-based priority lists: **Needs Attention Today** and **Next in Queue**
-- Summary cards, sorting, product detail drawer, and responsive layouts
+1. `/upload` — select and validate a CSV/XLSX inventory file
+2. `/dashboard` — view priority lists after a successful upload
+
+The app opens on `/upload`. There is no separate verification step.
 
 ## Sample template
 
-Download `public/sample-inventory-template.csv` from the upload modal, or open it directly from the public folder.
+Download `public/sample-inventory-template.csv` from the upload page. Required columns: SKU, Product Name, Brand, Category, Storage Conditions, Quantity on Hand, Reorder Threshold, Reorder Quantity, Sales Rate, Expiration Date.

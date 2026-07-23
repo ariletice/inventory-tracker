@@ -1,18 +1,21 @@
-export const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024
+export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024
 
 export const REQUIRED_COLUMNS = [
+  'SKU',
   'Product Name',
-  'Category',
   'Brand',
+  'Category',
+  'Storage Conditions',
   'Quantity on Hand',
   'Reorder Threshold',
   'Reorder Quantity',
-  'Expiration Date',
-  'Storage Conditions',
   'Sales Rate',
+  'Expiration Date',
 ] as const
 
 export const COLUMN_ALIASES: Record<string, string> = {
+  sku: 'SKU',
+  'product sku': 'SKU',
   'product name': 'Product Name',
   product: 'Product Name',
   productname: 'Product Name',
@@ -47,3 +50,15 @@ export const USER_PROFILE = {
   role: 'Inventory Coordinator',
   company: 'FreshRoute',
 } as const
+
+export const FILE_REQUIREMENTS_TOOLTIP =
+  'Your file must include all required columns. Each row should represent one unique SKU. Numeric fields cannot contain negative values, expiration dates must be valid, and SKUs cannot be blank or duplicated.'
+
+export const UPLOAD_CHECKLIST = [
+  'One product per row',
+  'Unique SKU for each product',
+  'Required columns included',
+  'No negative quantities',
+  'Valid expiration dates',
+  'CSV or XLSX format',
+] as const

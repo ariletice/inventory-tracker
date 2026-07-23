@@ -1,40 +1,40 @@
 import {
   AlertTriangle,
   Clock3,
-  PackageMinus,
-  CalendarClock,
+  Package,
+  CheckCircle2,
 } from 'lucide-react'
 
 type SummaryCardsProps = {
+  totalProducts: number
   needsAttention: number
   nextInQueue: number
-  lowStock: number
-  expiringSoon: number
+  noAction: number
 }
 
 const cards = [
   {
+    key: 'totalProducts' as const,
+    label: 'Total Products',
+    icon: Package,
+    accent: 'blue' as const,
+  },
+  {
     key: 'needsAttention' as const,
-    label: 'Needs Attention Today',
+    label: 'Needs Attention',
     icon: AlertTriangle,
     accent: 'orange' as const,
   },
   {
     key: 'nextInQueue' as const,
-    label: 'Next in Queue',
+    label: 'Coming Up Next',
     icon: Clock3,
     accent: 'blue' as const,
   },
   {
-    key: 'lowStock' as const,
-    label: 'Low-Stock Products',
-    icon: PackageMinus,
-    accent: 'orange' as const,
-  },
-  {
-    key: 'expiringSoon' as const,
-    label: 'Expiring Within 14 Days',
-    icon: CalendarClock,
+    key: 'noAction' as const,
+    label: 'Currently Stable',
+    icon: CheckCircle2,
     accent: 'blue' as const,
   },
 ]

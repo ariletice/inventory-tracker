@@ -88,7 +88,7 @@ export function ProductDetailDrawer({
               {product.productName}
             </h2>
             <p className="mt-1 text-sm text-brand-muted">
-              {product.brand} · {product.category}
+              {product.sku} · {product.brand} · {product.category}
             </p>
             {product.statusLabel && (
               <div className="mt-3">
@@ -109,6 +109,7 @@ export function ProductDetailDrawer({
 
         <div className="flex-1 overflow-y-auto px-5 py-4">
           <dl>
+            <DetailRow label="SKU" value={product.sku} />
             <DetailRow
               label="Quantity on hand"
               value={String(product.quantityOnHand)}

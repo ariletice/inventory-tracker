@@ -1,5 +1,6 @@
 export type InventoryProduct = {
   id: string
+  sku: string
   productName: string
   category: string
   brand: string
@@ -36,4 +37,19 @@ export type PrioritizedProduct = InventoryProduct & {
   daysOfInventory: number | null
   daysUntilExpiry: number
   reviewTiming?: string
+}
+
+export type ValidationError = {
+  row?: number
+  field?: string
+  message: string
+}
+
+export type InventoryImportState = {
+  fileName: string
+  uploadedAt: string
+  rowsFound: number
+  uniqueSkus: number
+  products: InventoryProduct[]
+  validationErrors: ValidationError[]
 }

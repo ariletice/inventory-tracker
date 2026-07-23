@@ -1,9 +1,9 @@
 import * as XLSX from 'xlsx'
 import { COLUMN_ALIASES, MAX_FILE_SIZE_BYTES, REQUIRED_COLUMNS } from './constants'
-import type { InventoryProduct } from '../types/inventory'
+import type { InventoryImportState, InventoryProduct } from '../types/inventory'
 
 export type ParseResult =
-  | { ok: true; products: InventoryProduct[] }
+  | { ok: true; data: InventoryImportState }
   | { ok: false; error: string }
 
 function normalizeHeader(header: string): string {
@@ -16,38 +16,77 @@ function normalizeHeader(header: string): string {
   )
 }
 
-function parseNumber(value: unknown, field: string, row: number): number {
-  if (typeof value === 'number' && !Number.isNaN(value)) return value
-  if (typeof value === 'string' && value.trim() !== '') {
-    const n = Number(value.replace(/,/g, '').trim())
-    if (!Number.isNaN(n)) return n
+type NumberParse =
+  | { ok: true; value: number }
+  | { ok: false; error: string }
+
+function parseNumber(
+  value: unknown,
+  field: string,
+  row: number,
+  opts: { min?: number; allowZero?: boolean } = {},
+): NumberParse {
+  const { min = 0, allowZero = true } = opts
+  let n: number | null = null
+  if (typeof value === 'number' && !Number.isNaN(value)) n = value
+  else if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value.replace(/,/g, '').trim())
+    if (!Number.isNaN(parsed)) n = parsed
   }
-  throw new Error(
-    `Row ${row}: “${field}” must be a number. Please update the spreadsheet and upload it again.`,
-  )
+
+  if (n === null) {
+    return {
+      ok: false,
+      error: `Row ${row}: ${field} must be a number.`,
+    }
+  }
+  if (n < 0) {
+    return {
+      ok: false,
+      error: `Row ${row}: ${field} cannot be negative.`,
+    }
+  }
+  if (!allowZero && n === 0) {
+    return {
+      ok: false,
+      error: `Row ${row}: ${field} must be greater than zero.`,
+    }
+  }
+  if (n < min) {
+    return {
+      ok: false,
+      error: `Row ${row}: ${field} must be ${min} or greater.`,
+    }
+  }
+  return { ok: true, value: n }
 }
 
-function parseDate(value: unknown, row: number): string {
+type DateParse =
+  | { ok: true; value: string }
+  | { ok: false; error: string }
+
+function parseDate(value: unknown, row: number): DateParse {
   if (value instanceof Date && !Number.isNaN(value.getTime())) {
-    return value.toISOString().slice(0, 10)
+    return { ok: true, value: value.toISOString().slice(0, 10) }
   }
   if (typeof value === 'number') {
     const parsed = XLSX.SSF.parse_date_code(value)
     if (parsed) {
       const mm = String(parsed.m).padStart(2, '0')
       const dd = String(parsed.d).padStart(2, '0')
-      return `${parsed.y}-${mm}-${dd}`
+      return { ok: true, value: `${parsed.y}-${mm}-${dd}` }
     }
   }
   if (typeof value === 'string' && value.trim()) {
     const d = new Date(value.trim())
     if (!Number.isNaN(d.getTime())) {
-      return d.toISOString().slice(0, 10)
+      return { ok: true, value: d.toISOString().slice(0, 10) }
     }
   }
-  throw new Error(
-    `Row ${row}: “Expiration Date” is invalid. Please update the spreadsheet and upload it again.`,
-  )
+  return {
+    ok: false,
+    error: `Row ${row}: Expiration Date must be a valid date.`,
+  }
 }
 
 function findMissingColumn(headers: string[]): string | null {
@@ -63,7 +102,7 @@ export async function parseInventoryFile(file: File): Promise<ParseResult> {
     return {
       ok: false,
       error:
-        'This file is larger than 5 MB. Please upload a smaller spreadsheet and try again.',
+        'This file is larger than 10 MB. Please upload a smaller spreadsheet and try again.',
     }
   }
 
@@ -105,7 +144,7 @@ export async function parseInventoryFile(file: File): Promise<ParseResult> {
     if (missing) {
       return {
         ok: false,
-        error: `We could not process this file because the “${missing}” column is missing. Please update the spreadsheet and upload it again.`,
+        error: `The ${missing} column is missing.`,
       }
     }
 
@@ -117,43 +156,131 @@ export async function parseInventoryFile(file: File): Promise<ParseResult> {
     const get = (row: Record<string, unknown>, col: string) =>
       row[headerMap.get(col) ?? col]
 
-    const products: InventoryProduct[] = rows.map((row, index) => {
+    const errors: string[] = []
+    const skuFirstRow = new Map<string, number>()
+    const draft: Array<{
+      sku: string
+      productName: string
+      category: string
+      brand: string
+      quantityOnHand: number
+      reorderThreshold: number
+      reorderQuantity: number
+      expirationDate: string
+      storageConditions: string
+      salesRate: number
+    }> = []
+
+    rows.forEach((row, index) => {
       const rowNum = index + 2
+      const sku = String(get(row, 'SKU') ?? '').trim()
       const productName = String(get(row, 'Product Name') ?? '').trim()
-      if (!productName) {
-        throw new Error(
-          `Row ${rowNum}: “Product Name” is required. Please update the spreadsheet and upload it again.`,
-        )
+      const brand = String(get(row, 'Brand') ?? '').trim()
+      const category = String(get(row, 'Category') ?? '').trim()
+      const storageConditions = String(
+        get(row, 'Storage Conditions') ?? '',
+      ).trim()
+
+      if (!sku) {
+        errors.push(`Row ${rowNum}: SKU is missing.`)
+      } else if (skuFirstRow.has(sku)) {
+        errors.push(`Row ${rowNum}: Duplicate SKU ${sku}.`)
+      } else {
+        skuFirstRow.set(sku, rowNum)
       }
 
-      return {
-        id: `upload-${Date.now()}-${index}`,
-        productName,
-        category: String(get(row, 'Category') ?? '').trim() || 'Uncategorized',
-        brand: String(get(row, 'Brand') ?? '').trim() || 'Unknown',
-        quantityOnHand: parseNumber(get(row, 'Quantity on Hand'), 'Quantity on Hand', rowNum),
-        reorderThreshold: parseNumber(
-          get(row, 'Reorder Threshold'),
-          'Reorder Threshold',
-          rowNum,
-        ),
-        reorderQuantity: parseNumber(
-          get(row, 'Reorder Quantity'),
-          'Reorder Quantity',
-          rowNum,
-        ),
-        expirationDate: parseDate(get(row, 'Expiration Date'), rowNum),
-        storageConditions:
-          String(get(row, 'Storage Conditions') ?? '').trim() || 'Not specified',
-        salesRate: parseNumber(get(row, 'Sales Rate'), 'Sales Rate', rowNum),
+      if (!productName) {
+        errors.push(`Row ${rowNum}: Product Name is missing.`)
+      }
+      if (!brand) {
+        errors.push(`Row ${rowNum}: Brand is missing.`)
+      }
+      if (!category) {
+        errors.push(`Row ${rowNum}: Category is missing.`)
+      }
+      if (!storageConditions) {
+        errors.push(`Row ${rowNum}: Storage Conditions is missing.`)
+      }
+
+      const qty = parseNumber(get(row, 'Quantity on Hand'), 'Quantity On Hand', rowNum)
+      const threshold = parseNumber(
+        get(row, 'Reorder Threshold'),
+        'Reorder Threshold',
+        rowNum,
+      )
+      const reorderQty = parseNumber(
+        get(row, 'Reorder Quantity'),
+        'Reorder Quantity',
+        rowNum,
+        { allowZero: false },
+      )
+      const salesRate = parseNumber(get(row, 'Sales Rate'), 'Sales Rate', rowNum)
+      const expiration = parseDate(get(row, 'Expiration Date'), rowNum)
+
+      if (!qty.ok) errors.push(qty.error)
+      if (!threshold.ok) errors.push(threshold.error)
+      if (!reorderQty.ok) errors.push(reorderQty.error)
+      if (!salesRate.ok) errors.push(salesRate.error)
+      if (!expiration.ok) errors.push(expiration.error)
+
+      if (
+        sku &&
+        !errors.some((e) => e.includes(`Duplicate SKU ${sku}`)) &&
+        productName &&
+        brand &&
+        category &&
+        storageConditions &&
+        qty.ok &&
+        threshold.ok &&
+        reorderQty.ok &&
+        salesRate.ok &&
+        expiration.ok
+      ) {
+        draft.push({
+          sku,
+          productName,
+          brand,
+          category,
+          storageConditions,
+          quantityOnHand: qty.value,
+          reorderThreshold: threshold.value,
+          reorderQuantity: reorderQty.value,
+          salesRate: salesRate.value,
+          expirationDate: expiration.value,
+        })
       }
     })
 
-    return { ok: true, products }
-  } catch (err) {
-    if (err instanceof Error) {
-      return { ok: false, error: err.message }
+    if (errors.length > 0) {
+      return { ok: false, error: errors[0] }
     }
+
+    const products: InventoryProduct[] = draft.map((item) => ({
+      id: item.sku,
+      sku: item.sku,
+      productName: item.productName,
+      brand: item.brand,
+      category: item.category,
+      storageConditions: item.storageConditions,
+      quantityOnHand: item.quantityOnHand,
+      reorderThreshold: item.reorderThreshold,
+      reorderQuantity: item.reorderQuantity,
+      salesRate: item.salesRate,
+      expirationDate: item.expirationDate,
+    }))
+
+    return {
+      ok: true,
+      data: {
+        fileName: file.name,
+        uploadedAt: new Date().toISOString(),
+        rowsFound: rows.length,
+        uniqueSkus: products.length,
+        products,
+        validationErrors: [],
+      },
+    }
+  } catch {
     return {
       ok: false,
       error:

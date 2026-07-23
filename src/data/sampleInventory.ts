@@ -10,7 +10,8 @@ function daysFromNow(days: number): string {
 
 export const sampleInventory: InventoryProduct[] = [
   {
-    id: 'sku-001',
+    id: 'FR-MLK-001',
+    sku: 'FR-MLK-001',
     productName: 'Whole Milk',
     category: 'Milk',
     brand: 'FreshRoute Dairy',
@@ -22,7 +23,8 @@ export const sampleInventory: InventoryProduct[] = [
     salesRate: 12,
   },
   {
-    id: 'sku-002',
+    id: 'FR-MLK-002',
+    sku: 'FR-MLK-002',
     productName: '2% Milk',
     category: 'Milk',
     brand: 'FreshRoute Dairy',
@@ -34,7 +36,8 @@ export const sampleInventory: InventoryProduct[] = [
     salesRate: 10,
   },
   {
-    id: 'sku-003',
+    id: 'VC-MLK-003',
+    sku: 'VC-MLK-003',
     productName: 'Skim Milk',
     category: 'Milk',
     brand: 'Valley Crest',
@@ -46,7 +49,8 @@ export const sampleInventory: InventoryProduct[] = [
     salesRate: 6,
   },
   {
-    id: 'sku-004',
+    id: 'VC-MLK-004',
+    sku: 'VC-MLK-004',
     productName: 'Chocolate Milk',
     category: 'Milk',
     brand: 'Valley Crest',
@@ -58,7 +62,8 @@ export const sampleInventory: InventoryProduct[] = [
     salesRate: 5,
   },
   {
-    id: 'sku-005',
+    id: 'OF-YOG-005',
+    sku: 'OF-YOG-005',
     productName: 'Greek Yogurt',
     category: 'Yogurt',
     brand: 'Olympus Farms',
@@ -70,7 +75,8 @@ export const sampleInventory: InventoryProduct[] = [
     salesRate: 4,
   },
   {
-    id: 'sku-006',
+    id: 'OF-YOG-006',
+    sku: 'OF-YOG-006',
     productName: 'Strawberry Yogurt',
     category: 'Yogurt',
     brand: 'Olympus Farms',
@@ -82,7 +88,8 @@ export const sampleInventory: InventoryProduct[] = [
     salesRate: 4,
   },
   {
-    id: 'sku-007',
+    id: 'HC-CHS-007',
+    sku: 'HC-CHS-007',
     productName: 'Cheddar Cheese',
     category: 'Cheese',
     brand: 'Heritage Creamery',
@@ -94,7 +101,8 @@ export const sampleInventory: InventoryProduct[] = [
     salesRate: 3,
   },
   {
-    id: 'sku-008',
+    id: 'HC-CHS-008',
+    sku: 'HC-CHS-008',
     productName: 'Mozzarella Cheese',
     category: 'Cheese',
     brand: 'Heritage Creamery',
@@ -106,7 +114,8 @@ export const sampleInventory: InventoryProduct[] = [
     salesRate: 3,
   },
   {
-    id: 'sku-009',
+    id: 'MB-BTR-009',
+    sku: 'MB-BTR-009',
     productName: 'Salted Butter',
     category: 'Butter',
     brand: 'Meadow Brook',
@@ -118,7 +127,8 @@ export const sampleInventory: InventoryProduct[] = [
     salesRate: 5,
   },
   {
-    id: 'sku-010',
+    id: 'MB-BTR-010',
+    sku: 'MB-BTR-010',
     productName: 'Unsalted Butter',
     category: 'Butter',
     brand: 'Meadow Brook',
@@ -130,7 +140,8 @@ export const sampleInventory: InventoryProduct[] = [
     salesRate: 3,
   },
   {
-    id: 'sku-011',
+    id: 'FR-CRM-011',
+    sku: 'FR-CRM-011',
     productName: 'Heavy Cream',
     category: 'Cream',
     brand: 'FreshRoute Dairy',
@@ -142,7 +153,8 @@ export const sampleInventory: InventoryProduct[] = [
     salesRate: 4,
   },
   {
-    id: 'sku-012',
+    id: 'FR-CRM-012',
+    sku: 'FR-CRM-012',
     productName: 'Half-and-Half',
     category: 'Cream',
     brand: 'FreshRoute Dairy',
@@ -154,7 +166,8 @@ export const sampleInventory: InventoryProduct[] = [
     salesRate: 3,
   },
   {
-    id: 'sku-013',
+    id: 'OF-CHS-013',
+    sku: 'OF-CHS-013',
     productName: 'Cottage Cheese',
     category: 'Cheese',
     brand: 'Olympus Farms',
@@ -166,7 +179,8 @@ export const sampleInventory: InventoryProduct[] = [
     salesRate: 2,
   },
   {
-    id: 'sku-014',
+    id: 'VC-CRM-014',
+    sku: 'VC-CRM-014',
     productName: 'Sour Cream',
     category: 'Cream',
     brand: 'Valley Crest',
@@ -178,7 +192,8 @@ export const sampleInventory: InventoryProduct[] = [
     salesRate: 2,
   },
   {
-    id: 'sku-015',
+    id: 'HC-CHS-015',
+    sku: 'HC-CHS-015',
     productName: 'Cream Cheese',
     category: 'Cheese',
     brand: 'Heritage Creamery',
@@ -190,7 +205,8 @@ export const sampleInventory: InventoryProduct[] = [
     salesRate: 2,
   },
   {
-    id: 'sku-016',
+    id: 'OF-YOG-016',
+    sku: 'OF-YOG-016',
     productName: 'Vanilla Yogurt',
     category: 'Yogurt',
     brand: 'Olympus Farms',
@@ -202,7 +218,8 @@ export const sampleInventory: InventoryProduct[] = [
     salesRate: 5,
   },
   {
-    id: 'sku-017',
+    id: 'HC-CHS-017',
+    sku: 'HC-CHS-017',
     productName: 'String Cheese',
     category: 'Cheese',
     brand: 'Heritage Creamery',

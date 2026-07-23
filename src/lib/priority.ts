@@ -176,14 +176,10 @@ export function sortPrioritized(
 }
 
 export function getSummaryCounts(products: PrioritizedProduct[]) {
+  const totalProducts = products.length
   const needsAttention = products.filter((p) => p.tier === 'needsAttention').length
   const nextInQueue = products.filter((p) => p.tier === 'nextInQueue').length
-  const lowStock = products.filter(
-    (p) => p.quantityOnHand <= p.reorderThreshold,
-  ).length
-  const expiringSoon = products.filter(
-    (p) => p.daysUntilExpiry >= 0 && p.daysUntilExpiry <= 14,
-  ).length
+  const noAction = products.filter((p) => p.tier === 'none').length
 
-  return { needsAttention, nextInQueue, lowStock, expiringSoon }
+  return { totalProducts, needsAttention, nextInQueue, noAction }
 }
