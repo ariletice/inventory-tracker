@@ -139,10 +139,7 @@ export function PriorityTable({
                           {product.productName}
                         </span>
                         {product.statusLabel && (
-                          <StatusBadge
-                            label={product.statusLabel}
-                            tone={tone}
-                          />
+                          <StatusBadge label={product.statusLabel} />
                         )}
                         {showReviewTiming && product.reviewTiming && (
                           <span className="text-xs text-brand-blue">
@@ -202,7 +199,7 @@ export function PriorityTable({
                       </p>
                     </div>
                     {product.statusLabel && (
-                      <StatusBadge label={product.statusLabel} tone={tone} />
+                      <StatusBadge label={product.statusLabel} />
                     )}
                   </div>
                   <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">

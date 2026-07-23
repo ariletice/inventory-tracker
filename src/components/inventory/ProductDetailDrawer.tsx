@@ -54,7 +54,6 @@ export function ProductDetailDrawer({
 
   if (!open || !product) return null
 
-  const tone = product.tier === 'needsAttention' ? 'urgent' : 'queue'
   const daysInventory =
     product.daysOfInventory === null
       ? product.salesRate <= 0 && product.quantityOnHand > 0
@@ -92,7 +91,7 @@ export function ProductDetailDrawer({
             </p>
             {product.statusLabel && (
               <div className="mt-3">
-                <StatusBadge label={product.statusLabel} tone={tone} />
+                <StatusBadge label={product.statusLabel} />
               </div>
             )}
           </div>

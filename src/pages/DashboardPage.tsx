@@ -3,62 +3,20 @@ import { useNavigate } from 'react-router-dom'
 import { Upload } from 'lucide-react'
 import { AppShell } from '../components/layout/AppShell'
 import { SummaryCards } from '../components/dashboard/SummaryCards'
-import { PriorityTable } from '../components/inventory/PriorityTable'
-import { ProductDetailDrawer } from '../components/inventory/ProductDetailDrawer'
+import { AllProductsTable } from '../components/inventory/AllProductsTable'
 import { useInventory } from '../context/InventoryContext'
-import {
-  getAlertCounts,
-  prioritizeInventory,
-  sortPrioritized,
-} from '../lib/priority'
-import type { PrioritizedProduct, SortOption } from '../types/inventory'
+import { getAlertCounts } from '../lib/priority'
 
 type NavId = 'dashboard' | 'inventory' | 'upload' | 'reports' | 'settings'
 
 export function DashboardPage() {
   const navigate = useNavigate()
-  const { importState, markReviewed, resetToUpload } = useInventory()
+  const { importState, toggleReviewed, resetToUpload } = useInventory()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [activeNav, setActiveNav] = useState<NavId>('dashboard')
-  const [sortBy, setSortBy] = useState<SortOption>('urgency')
-  const [selected, setSelected] = useState<PrioritizedProduct | null>(null)
-  const [drawerOpen, setDrawerOpen] = useState(false)
 
   const hasData = Boolean(importState && importState.products.length > 0)
   const products = importState?.products ?? []
-
-  const prioritized = useMemo(
-    () => prioritizeInventory(products),
-    [products],
-  )
-
-  const needsAttention = useMemo(
-    () =>
-      sortPrioritized(
-        prioritized.filter((p) => p.tier === 'needsAttention'),
-        sortBy,
-      ),
-    [prioritized, sortBy],
-  )
-
-  const topNeedsAttention = useMemo(
-    () => needsAttention.slice(0, 5),
-    [needsAttention],
-  )
-
-  const comingUpNext = useMemo(
-    () =>
-      sortPrioritized(
-        prioritized.filter((p) => p.tier === 'nextInQueue'),
-        'urgency',
-      ),
-    [prioritized],
-  )
-
-  const allByPriority = useMemo(
-    () => sortPrioritized(prioritized, 'urgency'),
-    [prioritized],
-  )
 
   const alertCounts = useMemo(() => getAlertCounts(products), [products])
 
@@ -125,54 +83,12 @@ export function DashboardPage() {
           />
         </section>
 
-        <PriorityTable
-          title="Needs Attention"
-          description="The five highest-priority products that need review first."
-          products={topNeedsAttention}
-          tone="urgent"
-          showSort
-          sortBy={sortBy}
-          onSortChange={setSortBy}
-          onSelect={(product) => {
-            setSelected(product)
-            setDrawerOpen(true)
-          }}
-        />
-
-        <PriorityTable
-          title="Coming Up Next"
-          description="These products may need attention soon."
-          products={comingUpNext}
-          tone="queue"
-          showReviewTiming
-          onSelect={(product) => {
-            setSelected(product)
-            setDrawerOpen(true)
-          }}
-        />
-
-        <PriorityTable
-          title="All Products by Priority"
-          description="Every uploaded product ranked from highest priority to lowest."
-          products={allByPriority}
-          tone="queue"
-          onSelect={(product) => {
-            setSelected(product)
-            setDrawerOpen(true)
-          }}
+        <AllProductsTable
+          products={products}
+          onToggleReviewed={toggleReviewed}
+          onUploadClick={goUpload}
         />
       </div>
-
-      <ProductDetailDrawer
-        product={
-          selected
-            ? prioritized.find((p) => p.id === selected.id) ?? selected
-            : null
-        }
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        onMarkReviewed={markReviewed}
-      />
     </AppShell>
   )
 }

@@ -53,7 +53,7 @@ function evaluateProduct(product: InventoryProduct, today: Date): Evaluation {
   if (daysUntilExpiry <= 0) {
     return {
       tier: 'needsAttention',
-      statusLabel: 'Expiring Soon',
+      statusLabel: 'Expired',
       reasonFlagged: 'Product is already expired',
       recommendedAction: 'Remove expired inventory',
       urgencyScore: 95,
@@ -63,7 +63,7 @@ function evaluateProduct(product: InventoryProduct, today: Date): Evaluation {
   if (qty <= threshold) {
     return {
       tier: 'needsAttention',
-      statusLabel: 'Reorder Now',
+      statusLabel: 'Low Stock',
       reasonFlagged: 'Quantity on hand is at or below the reorder threshold',
       recommendedAction: `Reorder ${product.reorderQuantity} units`,
       urgencyScore: 85 + Math.max(0, 10 - (qty / Math.max(threshold, 1)) * 10),
@@ -73,7 +73,7 @@ function evaluateProduct(product: InventoryProduct, today: Date): Evaluation {
   if (daysLeft <= 3) {
     return {
       tier: 'needsAttention',
-      statusLabel: 'Reorder Now',
+      statusLabel: 'Low Stock',
       reasonFlagged: 'Expected to run out within three days based on sales rate',
       recommendedAction: `Reorder ${product.reorderQuantity} units`,
       urgencyScore: 80 + (3 - daysLeft) * 3,
@@ -96,7 +96,7 @@ function evaluateProduct(product: InventoryProduct, today: Date): Evaluation {
   if (approachingThreshold) {
     return {
       tier: 'nextInQueue',
-      statusLabel: 'Monitor Stock',
+      statusLabel: 'Low Stock',
       reasonFlagged: 'Approaching reorder threshold',
       recommendedAction: 'Confirm incoming shipment',
       urgencyScore: 45,
@@ -107,7 +107,7 @@ function evaluateProduct(product: InventoryProduct, today: Date): Evaluation {
   if (daysLeft >= 4 && daysLeft <= 7) {
     return {
       tier: 'nextInQueue',
-      statusLabel: 'Monitor Stock',
+      statusLabel: 'No Recent Sales',
       reasonFlagged: 'May run out within four to seven days',
       recommendedAction: 'Confirm incoming shipment',
       urgencyScore: 40 + (7 - daysLeft),
@@ -118,7 +118,7 @@ function evaluateProduct(product: InventoryProduct, today: Date): Evaluation {
   if (daysUntilExpiry >= 8 && daysUntilExpiry <= 14) {
     return {
       tier: 'nextInQueue',
-      statusLabel: 'Upcoming Expiration',
+      statusLabel: 'Expiring Soon',
       reasonFlagged: 'Expires within eight to fourteen days',
       recommendedAction: 'Prioritize distribution',
       urgencyScore: 30 + (14 - daysUntilExpiry),
@@ -129,7 +129,7 @@ function evaluateProduct(product: InventoryProduct, today: Date): Evaluation {
 
   return {
     tier: 'none',
-    statusLabel: null,
+    statusLabel: 'In Good Standing',
     reasonFlagged: '',
     recommendedAction: '',
     urgencyScore: 0,

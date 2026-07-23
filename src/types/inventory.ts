@@ -17,10 +17,12 @@ export type PriorityTier = 'needsAttention' | 'nextInQueue' | 'none'
 
 export type StatusLabel =
   | 'Out of Stock'
-  | 'Reorder Now'
+  | 'Expired'
+  | 'Low Stock'
   | 'Expiring Soon'
-  | 'Monitor Stock'
-  | 'Upcoming Expiration'
+  | 'No Recent Sales'
+  | 'In Good Standing'
+  | 'Reviewed'
 
 export type SortOption =
   | 'urgency'
@@ -52,4 +54,14 @@ export type InventoryImportState = {
   uniqueSkus: number
   products: InventoryProduct[]
   validationErrors: ValidationError[]
+}
+
+export type ProductAlertRow = InventoryProduct & {
+  statuses: StatusLabel[]
+  primaryStatus: StatusLabel
+  recommendedAction: string
+  reasonFlagged: string
+  daysOfInventory: number | null
+  daysUntilExpiry: number
+  sortRank: number
 }

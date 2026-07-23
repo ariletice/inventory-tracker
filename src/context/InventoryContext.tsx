@@ -12,7 +12,7 @@ type InventoryContextValue = {
   importState: InventoryImportState | null
   setImportState: (state: InventoryImportState | null) => void
   resetToUpload: () => void
-  markReviewed: (id: string) => void
+  toggleReviewed: (id: string) => void
 }
 
 const InventoryContext = createContext<InventoryContextValue | null>(null)
@@ -26,13 +26,13 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
     setImportState(null)
   }, [])
 
-  const markReviewed = useCallback((id: string) => {
+  const toggleReviewed = useCallback((id: string) => {
     setImportState((prev) => {
       if (!prev) return prev
       return {
         ...prev,
         products: prev.products.map((p) =>
-          p.id === id ? { ...p, reviewed: true } : p,
+          p.id === id ? { ...p, reviewed: !p.reviewed } : p,
         ),
       }
     })
@@ -43,9 +43,9 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
       importState,
       setImportState,
       resetToUpload,
-      markReviewed,
+      toggleReviewed,
     }),
-    [importState, resetToUpload, markReviewed],
+    [importState, resetToUpload, toggleReviewed],
   )
 
   return (
