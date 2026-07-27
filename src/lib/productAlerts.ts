@@ -13,15 +13,6 @@ const STATUS_RANK: Record<Exclude<StatusLabel, 'Reviewed'>, number> = {
   'In Good Standing': 6,
 }
 
-const STATUS_ACTIONS: Record<Exclude<StatusLabel, 'Reviewed'>, string> = {
-  'Out of Stock': 'Reorder immediately',
-  Expired: 'Remove from inventory',
-  'Low Stock': 'Review reorder quantity',
-  'Expiring Soon': 'Prioritize before expiration',
-  'No Recent Sales': 'Review slow-moving inventory',
-  'In Good Standing': 'No action required',
-}
-
 const STATUS_REASONS: Record<Exclude<StatusLabel, 'Reviewed'>, string> = {
   'Out of Stock': 'Product has zero quantity on hand',
   Expired: 'Product is past its expiration date',
@@ -29,6 +20,21 @@ const STATUS_REASONS: Record<Exclude<StatusLabel, 'Reviewed'>, string> = {
   'Expiring Soon': 'Product expires within 14 days',
   'No Recent Sales': 'Sales rate is zero while stock remains',
   'In Good Standing': 'No immediate inventory issues detected',
+}
+
+/** Pick action from collected statuses using the coordinator action priority order. */
+export function getRecommendedAction(statuses: StatusLabel[]): string {
+  const set = new Set(statuses)
+
+  if (set.has('Expired')) return 'Remove from inventory'
+  if (set.has('Out of Stock')) return 'Reorder now'
+  if (set.has('Low Stock') && set.has('Expiring Soon')) {
+    return 'Review stock before reordering'
+  }
+  if (set.has('Low Stock')) return 'Reorder soon'
+  if (set.has('Expiring Soon')) return 'Sell or use soon'
+  if (set.has('No Recent Sales')) return 'Review slow-moving stock'
+  return 'No action needed'
 }
 
 function startOfToday(): Date {
@@ -116,7 +122,7 @@ export function buildProductAlertRow(
     ...product,
     statuses,
     primaryStatus,
-    recommendedAction: STATUS_ACTIONS[primaryKey],
+    recommendedAction: getRecommendedAction(statuses),
     reasonFlagged:
       reasons.length > 0
         ? reasons.join('. ') + '.'
