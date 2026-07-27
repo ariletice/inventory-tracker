@@ -67,7 +67,8 @@ export function AllProductsTable({
       <div className="border-b border-brand-border px-5 py-5 sm:px-6">
         <h2 className="text-lg font-semibold text-brand-navy">All Products</h2>
         <p className="mt-1 text-sm text-brand-muted">
-          Products are ranked from highest to lowest priority.
+          Products are ranked from highest to lowest priority. Check an item
+          once you’ve reviewed it.
         </p>
       </div>
 
@@ -75,8 +76,8 @@ export function AllProductsTable({
         <table className="w-full min-w-[960px] text-left text-sm">
           <thead className="sticky top-0 z-10 bg-brand-bg">
             <tr className="border-b border-brand-border text-xs font-semibold uppercase tracking-wide text-brand-muted">
-              <th scope="col" className="w-12 px-4 py-3">
-                <span className="sr-only">Reviewed</span>
+              <th scope="col" className="w-20 px-4 py-3">
+                Reviewed
               </th>
               <th scope="col" className="px-3 py-3">
                 Product
