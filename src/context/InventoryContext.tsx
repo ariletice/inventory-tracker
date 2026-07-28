@@ -32,7 +32,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
       return {
         ...prev,
         products: prev.products.map((p) =>
-          p.id === id ? { ...p, reviewed: !p.reviewed } : p,
+          p.recordId === id ? { ...p, reviewed: !p.reviewed } : p,
         ),
       }
     })

@@ -12,12 +12,36 @@ type AllProductsTableProps = {
 
 function formatDate(iso: string): string {
   const d = new Date(iso + 'T12:00:00')
-  if (Number.isNaN(d.getTime())) return '—'
+  if (Number.isNaN(d.getTime())) return 'Not provided'
   return d.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
   })
+}
+
+function displayValue(value: unknown): string {
+  if (value === null || value === undefined) return 'Not provided'
+  if (typeof value === 'number' && Number.isNaN(value)) return 'Not provided'
+  const text = String(value).trim()
+  if (text === '' || text === 'undefined' || text === 'null' || text === 'NaN') {
+    return 'Not provided'
+  }
+  return text
+}
+
+function formatLitersKg(value: number | undefined): string {
+  if (value === undefined || value === null || Number.isNaN(value)) {
+    return 'Not provided'
+  }
+  return `${value} liters/kg`
+}
+
+function formatDays(value: number | undefined): string {
+  if (value === undefined || value === null || Number.isNaN(value)) {
+    return 'Not provided'
+  }
+  return `${value} days`
 }
 
 function displayStatuses(row: ProductAlertRow): StatusLabel[] {
@@ -107,16 +131,12 @@ export function AllProductsTable({
           </thead>
           <tbody>
             {rows.map((row) => {
-              const isExpanded = expandedId === row.id
+              const isExpanded = expandedId === row.recordId
               const isReviewed = Boolean(row.reviewed)
               const badges = displayStatuses(row)
-              const secondary =
-                !isReviewed && row.statuses.length > 1
-                  ? row.statuses.slice(1).join(', ')
-                  : null
 
               return (
-                <Fragment key={row.id}>
+                <Fragment key={row.recordId}>
                   <tr
                     className={`border-b border-brand-border transition hover:bg-brand-bg/70 ${
                       isReviewed ? 'bg-gray-50/80 opacity-45' : ''
@@ -126,7 +146,7 @@ export function AllProductsTable({
                       <input
                         type="checkbox"
                         checked={isReviewed}
-                        onChange={() => onToggleReviewed(row.id)}
+                        onChange={() => onToggleReviewed(row.recordId)}
                         aria-label={`Mark ${row.productName} as reviewed`}
                         className="h-4 w-4 rounded border-brand-border text-brand-blue focus:ring-brand-blue"
                       />
@@ -138,10 +158,10 @@ export function AllProductsTable({
                       {row.brand}
                     </td>
                     <td className="px-3 py-3 align-middle text-brand-muted">
-                      {row.category}
+                      {row.category?.trim() || 'Dairy'}
                     </td>
                     <td className="px-3 py-3 align-middle tabular-nums text-brand-text">
-                      {row.quantityOnHand} units
+                      {formatLitersKg(row.quantityInStock)}
                     </td>
                     <td className="px-3 py-3 align-middle text-brand-muted">
                       {formatDate(row.expirationDate)}
@@ -164,7 +184,7 @@ export function AllProductsTable({
                       <button
                         type="button"
                         onClick={() =>
-                          setExpandedId(isExpanded ? null : row.id)
+                          setExpandedId(isExpanded ? null : row.recordId)
                         }
                         className="rounded-lg p-1.5 text-brand-muted transition hover:bg-brand-bg hover:text-brand-navy"
                         aria-expanded={isExpanded}
@@ -185,39 +205,46 @@ export function AllProductsTable({
                         className="border-b border-brand-border bg-brand-bg px-5 py-4 sm:px-6"
                       >
                         <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                          <DetailItem label="SKU" value={row.sku} />
-                          <DetailItem
-                            label="Reorder Threshold"
-                            value={String(row.reorderThreshold)}
-                          />
-                          <DetailItem
-                            label="Reorder Quantity"
-                            value={String(row.reorderQuantity)}
-                          />
-                          <DetailItem
-                            label="Sales Rate"
-                            value={`${row.salesRate} units per day`}
-                          />
-                          <DetailItem
-                            label="Storage Conditions"
-                            value={row.storageConditions}
-                          />
-                          <DetailItem
-                            label="Reason Flagged"
-                            value={row.reasonFlagged}
-                          />
-                          {secondary && (
+                          <div className="space-y-4">
                             <DetailItem
-                              label="Secondary Status"
-                              value={secondary}
+                              label="Product ID"
+                              value={displayValue(row.productId)}
                             />
-                          )}
-                          {row.salesRate > 0 && row.daysOfInventory !== null && (
                             <DetailItem
-                              label="Estimated Stock Remaining"
-                              value={`${row.daysOfInventory} days`}
+                              label="Production Date"
+                              value={formatDate(row.productionDate)}
                             />
-                          )}
+                            <DetailItem
+                              label="Shelf Life"
+                              value={formatDays(row.shelfLifeDays)}
+                            />
+                            <DetailItem
+                              label="Reorder Quantity"
+                              value={formatLitersKg(row.reorderQuantity)}
+                            />
+                            <DetailItem
+                              label="Storage Condition"
+                              value={displayValue(row.storageCondition)}
+                            />
+                          </div>
+                          <div className="space-y-4">
+                            <DetailItem
+                              label="Minimum Stock Threshold"
+                              value={formatLitersKg(row.minimumStockThreshold)}
+                            />
+                            <DetailItem
+                              label="Quantity Sold"
+                              value={formatLitersKg(row.quantitySold)}
+                            />
+                            <DetailItem
+                              label="Location"
+                              value={displayValue(row.location)}
+                            />
+                            <DetailItem
+                              label="Reason Flagged"
+                              value={displayValue(row.reasonFlagged)}
+                            />
+                          </div>
                         </dl>
                       </td>
                     </tr>

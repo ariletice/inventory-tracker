@@ -25,7 +25,7 @@ const sortOptions: { value: SortOption; label: string }[] = [
   { value: 'urgency', label: 'Highest urgency' },
   { value: 'quantity', label: 'Lowest quantity' },
   { value: 'expiration', label: 'Earliest expiration' },
-  { value: 'salesRate', label: 'Fastest sales rate' },
+  { value: 'salesRate', label: 'Highest quantity sold' },
 ]
 
 export function PriorityTable({
@@ -102,7 +102,7 @@ export function PriorityTable({
                     Reorder at
                   </th>
                   <th scope="col" className="px-4 py-3">
-                    Sales rate
+                    Qty sold
                   </th>
                   <th scope="col" className="px-4 py-3">
                     Expiration
@@ -118,7 +118,7 @@ export function PriorityTable({
               <tbody>
                 {products.map((product) => (
                   <tr
-                    key={product.id}
+                    key={product.recordId}
                     className={`cursor-pointer border-b border-brand-border last:border-0 transition hover:bg-brand-bg/60 ${
                       product.reviewed ? 'opacity-55' : ''
                     }`}
@@ -152,16 +152,16 @@ export function PriorityTable({
                       {product.brand}
                     </td>
                     <td className="px-4 py-4 text-brand-muted">
-                      {product.category}
+                      {product.category?.trim() || 'Dairy'}
                     </td>
                     <td className="px-4 py-4 font-medium tabular-nums text-brand-text">
-                      {product.quantityOnHand}
+                      {product.quantityInStock}
                     </td>
                     <td className="px-4 py-4 tabular-nums text-brand-muted">
-                      {product.reorderThreshold}
+                      {product.minimumStockThreshold}
                     </td>
                     <td className="px-4 py-4 tabular-nums text-brand-muted">
-                      {product.salesRate}/day
+                      {product.quantitySold ?? '—'}
                     </td>
                     <td className="px-4 py-4 text-brand-muted">
                       {formatDate(product.expirationDate)}
@@ -181,7 +181,7 @@ export function PriorityTable({
           {/* Mobile cards */}
           <ul className="divide-y divide-brand-border lg:hidden">
             {products.map((product) => (
-              <li key={product.id}>
+              <li key={product.recordId}>
                 <button
                   type="button"
                   onClick={() => onSelect(product)}
@@ -195,7 +195,7 @@ export function PriorityTable({
                         {product.productName}
                       </p>
                       <p className="mt-0.5 text-sm text-brand-muted">
-                        {product.brand} · {product.category}
+                        {product.brand} · {product.category?.trim() || 'Dairy'}
                       </p>
                     </div>
                     {product.statusLabel && (
@@ -204,20 +204,20 @@ export function PriorityTable({
                   </div>
                   <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                     <div>
-                      <dt className="text-xs text-brand-muted">Qty on hand</dt>
+                      <dt className="text-xs text-brand-muted">Qty in stock</dt>
                       <dd className="font-medium tabular-nums">
-                        {product.quantityOnHand}
+                        {product.quantityInStock}
                       </dd>
                     </div>
                     <div>
-                      <dt className="text-xs text-brand-muted">Reorder at</dt>
+                      <dt className="text-xs text-brand-muted">Min threshold</dt>
                       <dd className="tabular-nums">
-                        {product.reorderThreshold}
+                        {product.minimumStockThreshold}
                       </dd>
                     </div>
                     <div>
-                      <dt className="text-xs text-brand-muted">Sales rate</dt>
-                      <dd>{product.salesRate}/day</dd>
+                      <dt className="text-xs text-brand-muted">Qty sold</dt>
+                      <dd>{product.quantitySold ?? '—'}</dd>
                     </div>
                     <div>
                       <dt className="text-xs text-brand-muted">Expiration</dt>

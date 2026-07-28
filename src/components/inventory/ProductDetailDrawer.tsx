@@ -18,6 +18,16 @@ function formatDate(iso: string): string {
   })
 }
 
+function displayValue(value: unknown): string {
+  if (value === null || value === undefined) return 'Not provided'
+  if (typeof value === 'number' && Number.isNaN(value)) return 'Not provided'
+  const text = String(value).trim()
+  if (text === '' || text === 'undefined' || text === 'null' || text === 'NaN') {
+    return 'Not provided'
+  }
+  return text
+}
+
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between gap-4 border-b border-brand-border py-3 last:border-0">
@@ -54,13 +64,6 @@ export function ProductDetailDrawer({
 
   if (!open || !product) return null
 
-  const daysInventory =
-    product.daysOfInventory === null
-      ? product.salesRate <= 0 && product.quantityOnHand > 0
-        ? 'Stable (no sales rate)'
-        : '—'
-      : `${product.daysOfInventory} days`
-
   return (
     <div className="fixed inset-0 z-50 flex justify-end" role="presentation">
       <button
@@ -87,7 +90,8 @@ export function ProductDetailDrawer({
               {product.productName}
             </h2>
             <p className="mt-1 text-sm text-brand-muted">
-              {product.sku} · {product.brand} · {product.category}
+              {product.productId} · {product.brand} ·{' '}
+              {product.category?.trim() || 'Dairy'}
             </p>
             {product.statusLabel && (
               <div className="mt-3">
@@ -108,34 +112,45 @@ export function ProductDetailDrawer({
 
         <div className="flex-1 overflow-y-auto px-5 py-4">
           <dl>
-            <DetailRow label="SKU" value={product.sku} />
             <DetailRow
-              label="Quantity on hand"
-              value={String(product.quantityOnHand)}
+              label="Product ID"
+              value={displayValue(product.productId)}
             />
             <DetailRow
-              label="Reorder threshold"
-              value={String(product.reorderThreshold)}
+              label="Quantity in stock"
+              value={`${product.quantityInStock} liters/kg`}
+            />
+            <DetailRow
+              label="Minimum stock threshold"
+              value={`${product.minimumStockThreshold} liters/kg`}
             />
             <DetailRow
               label="Reorder quantity"
-              value={String(product.reorderQuantity)}
+              value={`${product.reorderQuantity} liters/kg`}
+            />
+            <DetailRow
+              label="Production date"
+              value={formatDate(product.productionDate)}
             />
             <DetailRow
               label="Expiration date"
               value={formatDate(product.expirationDate)}
             />
             <DetailRow
-              label="Storage conditions"
-              value={product.storageConditions}
+              label="Storage condition"
+              value={displayValue(product.storageCondition)}
             />
             <DetailRow
-              label="Sales rate"
-              value={`${product.salesRate} units/day`}
+              label="Quantity sold"
+              value={
+                product.quantitySold === undefined
+                  ? 'Not provided'
+                  : `${product.quantitySold} liters/kg`
+              }
             />
             <DetailRow
-              label="Est. days of inventory"
-              value={daysInventory}
+              label="Location"
+              value={displayValue(product.location)}
             />
           </dl>
 
@@ -164,7 +179,7 @@ export function ProductDetailDrawer({
           <button
             type="button"
             onClick={() => {
-              onMarkReviewed(product.id)
+              onMarkReviewed(product.recordId)
               onClose()
             }}
             className="flex-1 rounded-xl bg-brand-blue px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"

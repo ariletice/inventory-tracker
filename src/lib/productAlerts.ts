@@ -58,16 +58,11 @@ function daysUntilExpiry(dateStr: string, today: Date): number {
   )
 }
 
-function daysOfInventory(quantity: number, salesRate: number): number | null {
-  if (salesRate <= 0) return null
-  return Math.round((quantity / salesRate) * 10) / 10
-}
-
 export function collectStatuses(
   product: InventoryProduct,
   today = startOfToday(),
 ): StatusLabel[] {
-  const qty = product.quantityOnHand
+  const qty = product.quantityInStock
   const statuses: StatusLabel[] = []
 
   if (qty === 0) {
@@ -79,7 +74,7 @@ export function collectStatuses(
     statuses.push('Expired')
   }
 
-  if (qty > 0 && qty <= product.reorderThreshold) {
+  if (qty > 0 && qty <= product.minimumStockThreshold) {
     statuses.push('Low Stock')
   }
 
@@ -91,7 +86,11 @@ export function collectStatuses(
     }
   }
 
-  if (product.salesRate === 0 && qty > 0) {
+  if (
+    product.quantitySold !== undefined &&
+    product.quantitySold === 0 &&
+    qty > 0
+  ) {
     statuses.push('No Recent Sales')
   }
 
@@ -127,10 +126,7 @@ export function buildProductAlertRow(
       reasons.length > 0
         ? reasons.join('. ') + '.'
         : STATUS_REASONS['In Good Standing'],
-    daysOfInventory: daysOfInventory(
-      product.quantityOnHand,
-      product.salesRate,
-    ),
+    daysOfInventory: null,
     daysUntilExpiry: daysUntilExpiry(product.expirationDate, today),
     sortRank: STATUS_RANK[primaryKey],
   }
@@ -148,13 +144,11 @@ export function sortProductAlertRows(rows: ProductAlertRow[]): ProductAlertRow[]
       return a.daysUntilExpiry - b.daysUntilExpiry
     }
 
-    if (a.quantityOnHand !== b.quantityOnHand) {
-      return a.quantityOnHand - b.quantityOnHand
+    if (a.quantityInStock !== b.quantityInStock) {
+      return a.quantityInStock - b.quantityInStock
     }
 
-    const aDays = a.daysOfInventory ?? Number.POSITIVE_INFINITY
-    const bDays = b.daysOfInventory ?? Number.POSITIVE_INFINITY
-    return aDays - bDays
+    return 0
   })
 }
 

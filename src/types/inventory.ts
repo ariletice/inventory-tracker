@@ -1,15 +1,18 @@
 export type InventoryProduct = {
-  id: string
-  sku: string
+  recordId: string
+  productId: string
   productName: string
-  category: string
   brand: string
-  quantityOnHand: number
-  reorderThreshold: number
+  quantityInStock: number
+  minimumStockThreshold: number
   reorderQuantity: number
+  productionDate: string
   expirationDate: string
-  storageConditions: string
-  salesRate: number
+  category?: string
+  shelfLifeDays?: number
+  quantitySold?: number
+  storageCondition?: string
+  location?: string
   reviewed?: boolean
 }
 
@@ -51,7 +54,6 @@ export type InventoryImportState = {
   fileName: string
   uploadedAt: string
   rowsFound: number
-  uniqueSkus: number
   products: InventoryProduct[]
   validationErrors: ValidationError[]
 }

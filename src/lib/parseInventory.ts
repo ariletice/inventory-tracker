@@ -24,9 +24,9 @@ function parseNumber(
   value: unknown,
   field: string,
   row: number,
-  opts: { min?: number; allowZero?: boolean } = {},
+  opts: { allowZero?: boolean; positiveOnly?: boolean } = {},
 ): NumberParse {
-  const { min = 0, allowZero = true } = opts
+  const { allowZero = true, positiveOnly = false } = opts
   let n: number | null = null
   if (typeof value === 'number' && !Number.isNaN(value)) n = value
   else if (typeof value === 'string' && value.trim() !== '') {
@@ -35,27 +35,21 @@ function parseNumber(
   }
 
   if (n === null) {
-    return {
-      ok: false,
-      error: `Row ${row}: ${field} must be a number.`,
-    }
+    return { ok: false, error: `Row ${row}: ${field} must be a number.` }
   }
   if (n < 0) {
+    return { ok: false, error: `Row ${row}: ${field} cannot be negative.` }
+  }
+  if (positiveOnly && n <= 0) {
     return {
       ok: false,
-      error: `Row ${row}: ${field} cannot be negative.`,
+      error: `Row ${row}: ${field} must be greater than zero.`,
     }
   }
   if (!allowZero && n === 0) {
     return {
       ok: false,
       error: `Row ${row}: ${field} must be greater than zero.`,
-    }
-  }
-  if (n < min) {
-    return {
-      ok: false,
-      error: `Row ${row}: ${field} must be ${min} or greater.`,
     }
   }
   return { ok: true, value: n }
@@ -65,7 +59,7 @@ type DateParse =
   | { ok: true; value: string }
   | { ok: false; error: string }
 
-function parseDate(value: unknown, row: number): DateParse {
+function parseDate(value: unknown, field: string, row: number): DateParse {
   if (value instanceof Date && !Number.isNaN(value.getTime())) {
     return { ok: true, value: value.toISOString().slice(0, 10) }
   }
@@ -85,7 +79,7 @@ function parseDate(value: unknown, row: number): DateParse {
   }
   return {
     ok: false,
-    error: `Row ${row}: Expiration Date must be a valid date.`,
+    error: `Row ${row}: ${field} must be a valid date.`,
   }
 }
 
@@ -95,6 +89,10 @@ function findMissingColumn(headers: string[]): string | null {
     if (!normalized.has(required)) return required
   }
   return null
+}
+
+function isBlank(value: unknown): boolean {
+  return value === null || value === undefined || String(value).trim() === ''
 }
 
 export async function parseInventoryFile(file: File): Promise<ParseResult> {
@@ -122,7 +120,8 @@ export async function parseInventoryFile(file: File): Promise<ParseResult> {
     if (!sheetName) {
       return {
         ok: false,
-        error: 'This spreadsheet appears to be empty. Please check the file and try again.',
+        error:
+          'This spreadsheet appears to be empty. Please check the file and try again.',
       }
     }
 
@@ -135,7 +134,8 @@ export async function parseInventoryFile(file: File): Promise<ParseResult> {
     if (rows.length === 0) {
       return {
         ok: false,
-        error: 'This spreadsheet appears to be empty. Please check the file and try again.',
+        error:
+          'This spreadsheet appears to be empty. Please check the file and try again.',
       }
     }
 
@@ -157,96 +157,112 @@ export async function parseInventoryFile(file: File): Promise<ParseResult> {
       row[headerMap.get(col) ?? col]
 
     const errors: string[] = []
-    const skuFirstRow = new Map<string, number>()
-    const draft: Array<{
-      sku: string
-      productName: string
-      category: string
-      brand: string
-      quantityOnHand: number
-      reorderThreshold: number
-      reorderQuantity: number
-      expirationDate: string
-      storageConditions: string
-      salesRate: number
-    }> = []
+    const products: InventoryProduct[] = []
+    const batchStamp = Date.now()
 
     rows.forEach((row, index) => {
       const rowNum = index + 2
-      const sku = String(get(row, 'SKU') ?? '').trim()
+      const productId = String(get(row, 'Product ID') ?? '').trim()
       const productName = String(get(row, 'Product Name') ?? '').trim()
       const brand = String(get(row, 'Brand') ?? '').trim()
-      const category = String(get(row, 'Category') ?? '').trim()
-      const storageConditions = String(
-        get(row, 'Storage Conditions') ?? '',
-      ).trim()
 
-      if (!sku) {
-        errors.push(`Row ${rowNum}: SKU is missing.`)
-      } else if (skuFirstRow.has(sku)) {
-        errors.push(`Row ${rowNum}: Duplicate SKU ${sku}.`)
-      } else {
-        skuFirstRow.set(sku, rowNum)
+      if (!productId) {
+        errors.push(`Row ${rowNum}: Product ID is missing.`)
       }
-
       if (!productName) {
         errors.push(`Row ${rowNum}: Product Name is missing.`)
       }
       if (!brand) {
         errors.push(`Row ${rowNum}: Brand is missing.`)
       }
-      if (!category) {
-        errors.push(`Row ${rowNum}: Category is missing.`)
-      }
-      if (!storageConditions) {
-        errors.push(`Row ${rowNum}: Storage Conditions is missing.`)
-      }
 
-      const qty = parseNumber(get(row, 'Quantity on Hand'), 'Quantity On Hand', rowNum)
+      const qty = parseNumber(
+        get(row, 'Quantity in Stock (liters/kg)'),
+        'Quantity in Stock',
+        rowNum,
+      )
       const threshold = parseNumber(
-        get(row, 'Reorder Threshold'),
-        'Reorder Threshold',
+        get(row, 'Minimum Stock Threshold (liters/kg)'),
+        'Minimum Stock Threshold',
         rowNum,
       )
       const reorderQty = parseNumber(
-        get(row, 'Reorder Quantity'),
+        get(row, 'Reorder Quantity (liters/kg)'),
         'Reorder Quantity',
         rowNum,
         { allowZero: false },
       )
-      const salesRate = parseNumber(get(row, 'Sales Rate'), 'Sales Rate', rowNum)
-      const expiration = parseDate(get(row, 'Expiration Date'), rowNum)
+      const production = parseDate(
+        get(row, 'Production Date'),
+        'Production Date',
+        rowNum,
+      )
+      const expiration = parseDate(
+        get(row, 'Expiration Date'),
+        'Expiration Date',
+        rowNum,
+      )
 
       if (!qty.ok) errors.push(qty.error)
       if (!threshold.ok) errors.push(threshold.error)
       if (!reorderQty.ok) errors.push(reorderQty.error)
-      if (!salesRate.ok) errors.push(salesRate.error)
+      if (!production.ok) errors.push(production.error)
       if (!expiration.ok) errors.push(expiration.error)
 
+      if (production.ok && expiration.ok && expiration.value < production.value) {
+        errors.push(
+          `Row ${rowNum}: Expiration Date cannot be earlier than Production Date.`,
+        )
+      }
+
+      let shelfLifeDays: number | undefined
+      const shelfRaw = get(row, 'Shelf Life (days)')
+      if (!isBlank(shelfRaw)) {
+        const shelf = parseNumber(shelfRaw, 'Shelf Life', rowNum, {
+          positiveOnly: true,
+        })
+        if (!shelf.ok) errors.push(shelf.error)
+        else shelfLifeDays = shelf.value
+      }
+
+      let quantitySold: number | undefined
+      const soldRaw = get(row, 'Quantity Sold (liters/kg)')
+      if (!isBlank(soldRaw)) {
+        const sold = parseNumber(soldRaw, 'Quantity Sold', rowNum)
+        if (!sold.ok) errors.push(sold.error)
+        else quantitySold = sold.value
+      }
+
+      const storageCondition = String(
+        get(row, 'Storage Condition') ?? '',
+      ).trim()
+      const location = String(get(row, 'Location') ?? '').trim()
+
       if (
-        sku &&
-        !errors.some((e) => e.includes(`Duplicate SKU ${sku}`)) &&
+        productId &&
         productName &&
         brand &&
-        category &&
-        storageConditions &&
         qty.ok &&
         threshold.ok &&
         reorderQty.ok &&
-        salesRate.ok &&
-        expiration.ok
+        production.ok &&
+        expiration.ok &&
+        expiration.value >= production.value
       ) {
-        draft.push({
-          sku,
+        products.push({
+          recordId: `rec-${batchStamp}-${index}`,
+          productId,
           productName,
           brand,
-          category,
-          storageConditions,
-          quantityOnHand: qty.value,
-          reorderThreshold: threshold.value,
+          quantityInStock: qty.value,
+          minimumStockThreshold: threshold.value,
           reorderQuantity: reorderQty.value,
-          salesRate: salesRate.value,
+          productionDate: production.value,
           expirationDate: expiration.value,
+          ...(shelfLifeDays !== undefined ? { shelfLifeDays } : {}),
+          ...(quantitySold !== undefined ? { quantitySold } : {}),
+          ...(storageCondition ? { storageCondition } : {}),
+          ...(location ? { location } : {}),
         })
       }
     })
@@ -255,27 +271,12 @@ export async function parseInventoryFile(file: File): Promise<ParseResult> {
       return { ok: false, error: errors[0] }
     }
 
-    const products: InventoryProduct[] = draft.map((item) => ({
-      id: item.sku,
-      sku: item.sku,
-      productName: item.productName,
-      brand: item.brand,
-      category: item.category,
-      storageConditions: item.storageConditions,
-      quantityOnHand: item.quantityOnHand,
-      reorderThreshold: item.reorderThreshold,
-      reorderQuantity: item.reorderQuantity,
-      salesRate: item.salesRate,
-      expirationDate: item.expirationDate,
-    }))
-
     return {
       ok: true,
       data: {
         fileName: file.name,
         uploadedAt: new Date().toISOString(),
         rowsFound: rows.length,
-        uniqueSkus: products.length,
         products,
         validationErrors: [],
       },

@@ -18,11 +18,6 @@ function daysUntil(dateStr: string, today = startOfToday()): number {
   return Math.round((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
 }
 
-function daysOfInventory(quantity: number, salesRate: number): number | null {
-  if (salesRate <= 0) return quantity > 0 ? Infinity : 0
-  return quantity / salesRate
-}
-
 type Evaluation = {
   tier: PriorityTier
   statusLabel: StatusLabel | null
@@ -33,10 +28,8 @@ type Evaluation = {
 }
 
 function evaluateProduct(product: InventoryProduct, today: Date): Evaluation {
-  const qty = product.quantityOnHand
-  const threshold = product.reorderThreshold
-  const doi = daysOfInventory(qty, product.salesRate)
-  const daysLeft = doi === Infinity ? Number.POSITIVE_INFINITY : (doi ?? 0)
+  const qty = product.quantityInStock
+  const threshold = product.minimumStockThreshold
   const daysUntilExpiry = daysUntil(product.expirationDate, today)
 
   // Needs Attention Today
@@ -65,18 +58,8 @@ function evaluateProduct(product: InventoryProduct, today: Date): Evaluation {
       tier: 'needsAttention',
       statusLabel: 'Low Stock',
       reasonFlagged: 'Quantity on hand is at or below the reorder threshold',
-      recommendedAction: `Reorder ${product.reorderQuantity} units`,
+      recommendedAction: `Reorder ${product.reorderQuantity} liters/kg`,
       urgencyScore: 85 + Math.max(0, 10 - (qty / Math.max(threshold, 1)) * 10),
-    }
-  }
-
-  if (daysLeft <= 3) {
-    return {
-      tier: 'needsAttention',
-      statusLabel: 'Low Stock',
-      reasonFlagged: 'Expected to run out within three days based on sales rate',
-      recommendedAction: `Reorder ${product.reorderQuantity} units`,
-      urgencyScore: 80 + (3 - daysLeft) * 3,
     }
   }
 
@@ -101,17 +84,6 @@ function evaluateProduct(product: InventoryProduct, today: Date): Evaluation {
       recommendedAction: 'Confirm incoming shipment',
       urgencyScore: 45,
       reviewTiming: 'Review tomorrow',
-    }
-  }
-
-  if (daysLeft >= 4 && daysLeft <= 7) {
-    return {
-      tier: 'nextInQueue',
-      statusLabel: 'No Recent Sales',
-      reasonFlagged: 'May run out within four to seven days',
-      recommendedAction: 'Confirm incoming shipment',
-      urgencyScore: 40 + (7 - daysLeft),
-      reviewTiming: daysLeft <= 5 ? 'Review within 3 days' : 'Review this week',
     }
   }
 
@@ -145,13 +117,11 @@ export function prioritizeInventory(
 
   return products.map((product) => {
     const evaluation = evaluateProduct(product, today)
-    const doi = daysOfInventory(product.quantityOnHand, product.salesRate)
 
     return {
       ...product,
       ...evaluation,
-      daysOfInventory:
-        doi === Infinity ? null : doi === null ? null : Math.round(doi * 10) / 10,
+      daysOfInventory: null,
       daysUntilExpiry: daysUntil(product.expirationDate, today),
     }
   })
@@ -164,11 +134,13 @@ export function sortPrioritized(
   const sorted = [...products]
   switch (sortBy) {
     case 'quantity':
-      return sorted.sort((a, b) => a.quantityOnHand - b.quantityOnHand)
+      return sorted.sort((a, b) => a.quantityInStock - b.quantityInStock)
     case 'expiration':
       return sorted.sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry)
     case 'salesRate':
-      return sorted.sort((a, b) => b.salesRate - a.salesRate)
+      return sorted.sort(
+        (a, b) => (b.quantitySold ?? 0) - (a.quantitySold ?? 0),
+      )
     case 'urgency':
     default:
       return sorted.sort((a, b) => b.urgencyScore - a.urgencyScore)
@@ -179,13 +151,13 @@ export function getAlertCounts(products: InventoryProduct[]) {
   const productsUploaded = products.length
 
   const outOfStock = products.filter(
-    (product) => product.quantityOnHand === 0,
+    (product) => product.quantityInStock === 0,
   ).length
 
   const belowReorderThreshold = products.filter(
     (product) =>
-      product.quantityOnHand > 0 &&
-      product.quantityOnHand <= product.reorderThreshold,
+      product.quantityInStock > 0 &&
+      product.quantityInStock <= product.minimumStockThreshold,
   ).length
 
   const today = new Date()
