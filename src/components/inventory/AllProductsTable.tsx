@@ -14,6 +14,8 @@ import { StatusBadge } from './StatusBadge'
 
 const SECTION_PAGE_SIZE = 25
 
+type ReviewFilter = 'unreviewed' | 'all' | 'reviewed'
+
 type AllProductsTableProps = {
   products: InventoryProduct[]
   onToggleReviewed: (id: string) => void
@@ -55,7 +57,9 @@ function formatDays(value: number | undefined): string {
 }
 
 function displayStatuses(row: ProductAlertRow): StatusLabel[] {
-  return row.statuses.slice(0, 2)
+  const statuses = row.statuses.slice(0, 2)
+  if (row.reviewed) return [...statuses, 'Reviewed']
+  return statuses
 }
 
 function DetailItem({ label, value }: { label: string; value: string }) {
@@ -89,8 +93,8 @@ function ProductRows({
           <Fragment key={row.recordId}>
             <tr
               className={`border-b border-brand-border transition hover:bg-brand-bg/70 ${
-                isExpanded ? 'border-b-0' : ''
-              }`}
+                isReviewed ? 'bg-slate-50' : ''
+              } ${isExpanded ? 'border-b-0' : ''}`}
             >
               <td className="px-4 py-3 align-middle">
                 <input
@@ -145,7 +149,7 @@ function ProductRows({
               </td>
             </tr>
             {isExpanded && (
-              <tr>
+              <tr className={isReviewed ? 'bg-slate-50' : ''}>
                 <td
                   colSpan={9}
                   className="border-b border-brand-border bg-brand-bg px-5 py-4 sm:px-6"
@@ -226,6 +230,21 @@ const SECTION_HEADER_STYLES: Record<
   },
 }
 
+const REVIEW_FILTERS: { value: ReviewFilter; label: string }[] = [
+  { value: 'unreviewed', label: 'Unreviewed' },
+  { value: 'all', label: 'All' },
+  { value: 'reviewed', label: 'Reviewed' },
+]
+
+function filterRowsByReview(
+  rows: ProductAlertRow[],
+  filter: ReviewFilter,
+): ProductAlertRow[] {
+  if (filter === 'unreviewed') return rows.filter((row) => !row.reviewed)
+  if (filter === 'reviewed') return rows.filter((row) => Boolean(row.reviewed))
+  return rows
+}
+
 function UrgencySectionBlock({
   section,
   defaultOpen,
@@ -241,12 +260,25 @@ function UrgencySectionBlock({
 }) {
   const [open, setOpen] = useState(defaultOpen)
   const [showAll, setShowAll] = useState(false)
+  const [reviewFilter, setReviewFilter] = useState<ReviewFilter>('unreviewed')
+
+  const filteredRows = useMemo(
+    () => filterRowsByReview(section.rows, reviewFilter),
+    [section.rows, reviewFilter],
+  )
 
   const visibleRows = showAll
-    ? section.rows
-    : section.rows.slice(0, SECTION_PAGE_SIZE)
-  const hasMore = section.rows.length > SECTION_PAGE_SIZE
+    ? filteredRows
+    : filteredRows.slice(0, SECTION_PAGE_SIZE)
+  const hasMore = filteredRows.length > SECTION_PAGE_SIZE
   const styles = SECTION_HEADER_STYLES[section.id]
+
+  const emptyFilterMessage =
+    reviewFilter === 'unreviewed'
+      ? 'No unreviewed products in this section.'
+      : reviewFilter === 'reviewed'
+        ? 'No reviewed products in this section.'
+        : 'None right now.'
 
   return (
     <section className="overflow-hidden rounded-2xl border border-brand-border bg-brand-white shadow-sm">
@@ -283,61 +315,102 @@ function UrgencySectionBlock({
             </p>
           ) : (
             <>
-              <div className="overflow-x-auto border-t border-brand-border bg-brand-white">
-                <table className="w-full min-w-[960px] text-left text-sm">
-                  <thead className="sticky top-0 z-10 bg-brand-bg">
-                    <tr className="border-b border-brand-border text-xs font-semibold uppercase tracking-wide text-brand-muted">
-                      <th scope="col" className="w-20 px-4 py-3">
-                        Reviewed
-                      </th>
-                      <th scope="col" className="px-3 py-3">
-                        Product
-                      </th>
-                      <th scope="col" className="px-3 py-3">
-                        Brand
-                      </th>
-                      <th scope="col" className="px-3 py-3">
-                        Category
-                      </th>
-                      <th scope="col" className="px-3 py-3">
-                        Stock
-                      </th>
-                      <th scope="col" className="px-3 py-3">
-                        Expiration
-                      </th>
-                      <th scope="col" className="px-3 py-3">
-                        Status
-                      </th>
-                      <th scope="col" className="px-3 py-3">
-                        Recommended Action
-                      </th>
-                      <th scope="col" className="w-14 px-3 py-3 pr-5">
-                        Details
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <ProductRows
-                      rows={visibleRows}
-                      expandedId={expandedId}
-                      setExpandedId={setExpandedId}
-                      onToggleReviewed={onToggleReviewed}
-                    />
-                  </tbody>
-                </table>
-              </div>
-              {hasMore && (
-                <div className="border-t border-brand-border bg-brand-white px-5 py-3 sm:px-6">
-                  <button
-                    type="button"
-                    onClick={() => setShowAll((prev) => !prev)}
-                    className="text-sm font-semibold text-brand-blue hover:text-blue-700"
-                  >
-                    {showAll
-                      ? 'Show less'
-                      : `View all ${section.rows.length} records`}
-                  </button>
+              <div className="flex flex-wrap items-center gap-2 border-t border-brand-border bg-brand-white px-5 py-3 sm:px-6">
+                <span className="text-xs font-medium uppercase tracking-wide text-brand-muted">
+                  Show
+                </span>
+                <div
+                  className="inline-flex rounded-lg border border-brand-border p-0.5"
+                  role="group"
+                  aria-label={`Filter ${section.title} by review status`}
+                >
+                  {REVIEW_FILTERS.map((option) => {
+                    const isActive = reviewFilter === option.value
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => {
+                          setReviewFilter(option.value)
+                          setShowAll(false)
+                        }}
+                        className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
+                          isActive
+                            ? 'bg-brand-navy text-white'
+                            : 'text-brand-muted hover:bg-brand-bg hover:text-brand-text'
+                        }`}
+                        aria-pressed={isActive}
+                      >
+                        {option.label}
+                      </button>
+                    )
+                  })}
                 </div>
+              </div>
+
+              {filteredRows.length === 0 ? (
+                <p className="border-t border-brand-border bg-brand-white px-5 py-4 text-sm text-brand-muted sm:px-6">
+                  {emptyFilterMessage}
+                </p>
+              ) : (
+                <>
+                  <div className="overflow-x-auto border-t border-brand-border bg-brand-white">
+                    <table className="w-full min-w-[960px] text-left text-sm">
+                      <thead className="sticky top-0 z-10 bg-brand-bg">
+                        <tr className="border-b border-brand-border text-xs font-semibold uppercase tracking-wide text-brand-muted">
+                          <th scope="col" className="w-20 px-4 py-3">
+                            Reviewed
+                          </th>
+                          <th scope="col" className="px-3 py-3">
+                            Product
+                          </th>
+                          <th scope="col" className="px-3 py-3">
+                            Brand
+                          </th>
+                          <th scope="col" className="px-3 py-3">
+                            Category
+                          </th>
+                          <th scope="col" className="px-3 py-3">
+                            Stock
+                          </th>
+                          <th scope="col" className="px-3 py-3">
+                            Expiration
+                          </th>
+                          <th scope="col" className="px-3 py-3">
+                            Status
+                          </th>
+                          <th scope="col" className="px-3 py-3">
+                            Recommended Action
+                          </th>
+                          <th scope="col" className="w-14 px-3 py-3 pr-5">
+                            Details
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <ProductRows
+                          rows={visibleRows}
+                          expandedId={expandedId}
+                          setExpandedId={setExpandedId}
+                          onToggleReviewed={onToggleReviewed}
+                        />
+                      </tbody>
+                    </table>
+                  </div>
+                  {hasMore && (
+                    <div className="border-t border-brand-border bg-brand-white px-5 py-3 sm:px-6">
+                      <button
+                        type="button"
+                        onClick={() => setShowAll((prev) => !prev)}
+                        className="text-sm font-semibold text-brand-blue hover:text-blue-700"
+                      >
+                        {showAll
+                          ? 'Show less'
+                          : `View all ${filteredRows.length} records`}
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </>
           )}
