@@ -68,17 +68,21 @@ export function DashboardPage() {
       onCloseMobile={() => setMobileOpen(false)}
       fileName={importState?.fileName}
       uploadedAt={importState?.uploadedAt}
-      totalProducts={alertCounts.productsUploaded}
+      totalProducts={alertCounts.totalRecords}
     >
       <div className="mx-auto flex max-w-7xl flex-col gap-6">
         <section>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-brand-muted">
-            Inventory Overview
+          <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-brand-muted">
+            Needs Attention Today
           </h2>
+          <p className="mb-3 text-sm text-brand-muted">
+            Products that require immediate or upcoming action based on stock
+            levels and expiration dates.
+          </p>
           <SummaryCards
-            productsUploaded={alertCounts.productsUploaded}
+            expired={alertCounts.expired}
             outOfStock={alertCounts.outOfStock}
-            belowReorderThreshold={alertCounts.belowReorderThreshold}
+            lowStock={alertCounts.lowStock}
             expiringWithin14Days={alertCounts.expiringWithin14Days}
           />
         </section>

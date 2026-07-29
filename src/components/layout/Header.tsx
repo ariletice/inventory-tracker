@@ -52,7 +52,7 @@ export function Header({
             </p>
             {typeof totalProducts === 'number' && (
               <p className="mt-2 text-sm font-medium text-brand-navy">
-                {totalProducts} products successfully uploaded and analyzed
+                {totalProducts} inventory records analyzed
               </p>
             )}
             {fileName && uploadedDate && uploadedTime && (

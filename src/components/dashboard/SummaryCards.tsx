@@ -1,53 +1,53 @@
 import {
   AlertCircle,
   CalendarClock,
-  Package,
   PackageMinus,
+  PackageX,
 } from 'lucide-react'
 
 type SummaryCardsProps = {
-  productsUploaded: number
+  expired: number
   outOfStock: number
-  belowReorderThreshold: number
+  lowStock: number
   expiringWithin14Days: number
 }
 
 const cards = [
   {
-    key: 'productsUploaded' as const,
-    label: 'Products Uploaded',
-    support: 'Successfully analyzed from the latest file',
-    icon: Package,
-    accent: 'blue' as const,
+    key: 'expired' as const,
+    label: 'Expired',
+    support: 'Remove from inventory immediately',
+    action: 'Remove from inventory',
+    icon: PackageX,
+    accent: 'red' as const,
   },
   {
     key: 'outOfStock' as const,
     label: 'Out of Stock',
-    support: 'Products with zero quantity on hand',
+    support: 'Products that need immediate reordering',
+    action: 'Reorder now',
     icon: AlertCircle,
     accent: 'red' as const,
   },
   {
-    key: 'belowReorderThreshold' as const,
-    label: 'Below Reorder Threshold',
-    support: 'Products that may need to be reordered',
+    key: 'lowStock' as const,
+    label: 'Low Stock',
+    support: 'Products that may run out soon',
+    action: 'Reorder soon',
     icon: PackageMinus,
     accent: 'orange' as const,
   },
   {
     key: 'expiringWithin14Days' as const,
     label: 'Expiring Within 14 Days',
-    support: 'Products approaching their expiration date',
+    support: 'Products that should be sold or used soon',
+    action: 'Sell or use soon',
     icon: CalendarClock,
     accent: 'orange' as const,
   },
 ]
 
 const accentStyles = {
-  blue: {
-    number: 'text-brand-blue',
-    iconWrap: 'bg-brand-blue-light text-brand-blue',
-  },
   red: {
     number: 'text-brand-danger',
     iconWrap: 'bg-brand-danger-light text-brand-danger',
@@ -83,6 +83,9 @@ export function SummaryCards(props: SummaryCardsProps) {
                     {value}
                   </p>
                   <p className="mt-2 text-sm text-brand-muted">{card.support}</p>
+                  <p className="mt-1 text-sm font-medium text-brand-text">
+                    {card.action}
+                  </p>
                 </div>
                 <div
                   className={`shrink-0 rounded-xl p-2.5 ${styles.iconWrap}`}

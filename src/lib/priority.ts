@@ -148,23 +148,28 @@ export function sortPrioritized(
 }
 
 export function getAlertCounts(products: InventoryProduct[]) {
-  const productsUploaded = products.length
-
-  const outOfStock = products.filter(
-    (product) => product.quantityInStock === 0,
-  ).length
-
-  const belowReorderThreshold = products.filter(
-    (product) =>
-      product.quantityInStock > 0 &&
-      product.quantityInStock <= product.minimumStockThreshold,
-  ).length
-
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
   const fourteenDaysFromToday = new Date(today)
   fourteenDaysFromToday.setDate(today.getDate() + 14)
+
+  const expired = products.filter((product) => {
+    const expirationDate = new Date(product.expirationDate + 'T12:00:00')
+    if (Number.isNaN(expirationDate.getTime())) return false
+    expirationDate.setHours(0, 0, 0, 0)
+    return expirationDate < today
+  }).length
+
+  const outOfStock = products.filter(
+    (product) => product.quantityInStock === 0,
+  ).length
+
+  const lowStock = products.filter(
+    (product) =>
+      product.quantityInStock > 0 &&
+      product.quantityInStock <= product.minimumStockThreshold,
+  ).length
 
   const expiringWithin14Days = products.filter((product) => {
     const expirationDate = new Date(product.expirationDate + 'T12:00:00')
@@ -178,9 +183,10 @@ export function getAlertCounts(products: InventoryProduct[]) {
   }).length
 
   return {
-    productsUploaded,
+    expired,
     outOfStock,
-    belowReorderThreshold,
+    lowStock,
     expiringWithin14Days,
+    totalRecords: products.length,
   }
 }

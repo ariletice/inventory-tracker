@@ -5,8 +5,8 @@ import type {
 } from '../types/inventory'
 
 const STATUS_RANK: Record<Exclude<StatusLabel, 'Reviewed'>, number> = {
-  'Out of Stock': 1,
-  Expired: 2,
+  Expired: 1,
+  'Out of Stock': 2,
   'Low Stock': 3,
   'Expiring Soon': 4,
   'No Recent Sales': 5,
@@ -20,6 +20,19 @@ const STATUS_REASONS: Record<Exclude<StatusLabel, 'Reviewed'>, string> = {
   'Expiring Soon': 'Product expires within 14 days',
   'No Recent Sales': 'Sales rate is zero while stock remains',
   'In Good Standing': 'No immediate inventory issues detected',
+}
+
+export type UrgencySectionId =
+  | 'critical'
+  | 'needsActionSoon'
+  | 'inGoodStanding'
+  | 'reviewed'
+
+export type UrgencySection = {
+  id: UrgencySectionId
+  title: string
+  description: string
+  rows: ProductAlertRow[]
 }
 
 /** Pick action from collected statuses using the coordinator action priority order. */
@@ -130,6 +143,82 @@ export function buildProductAlertRow(
     daysUntilExpiry: daysUntilExpiry(product.expirationDate, today),
     sortRank: STATUS_RANK[primaryKey],
   }
+}
+
+function compareWithinSection(a: ProductAlertRow, b: ProductAlertRow): number {
+  if (a.sortRank !== b.sortRank) return a.sortRank - b.sortRank
+  if (a.daysUntilExpiry !== b.daysUntilExpiry) {
+    return a.daysUntilExpiry - b.daysUntilExpiry
+  }
+  if (a.quantityInStock !== b.quantityInStock) {
+    return a.quantityInStock - b.quantityInStock
+  }
+  return 0
+}
+
+function assignUrgencySection(row: ProductAlertRow): UrgencySectionId {
+  if (row.reviewed) return 'reviewed'
+
+  const set = new Set(row.statuses)
+  if (set.has('Expired')) return 'critical'
+  if (set.has('Out of Stock')) return 'critical'
+  if (set.has('Low Stock')) return 'needsActionSoon'
+  if (set.has('Expiring Soon')) return 'needsActionSoon'
+  return 'inGoodStanding'
+}
+
+export function groupProductsByUrgency(
+  products: InventoryProduct[],
+): UrgencySection[] {
+  const buckets: Record<UrgencySectionId, ProductAlertRow[]> = {
+    critical: [],
+    needsActionSoon: [],
+    inGoodStanding: [],
+    reviewed: [],
+  }
+
+  for (const product of products) {
+    const row = buildProductAlertRow(product)
+    buckets[assignUrgencySection(row)].push(row)
+  }
+
+  for (const id of Object.keys(buckets) as UrgencySectionId[]) {
+    buckets[id].sort(compareWithinSection)
+  }
+
+  const sections: UrgencySection[] = [
+    {
+      id: 'critical',
+      title: 'Critical Products',
+      description:
+        'Expired and out-of-stock inventory requiring immediate action.',
+      rows: buckets.critical,
+    },
+    {
+      id: 'needsActionSoon',
+      title: 'Needs Action Soon',
+      description:
+        'Products that need attention before they become critical.',
+      rows: buckets.needsActionSoon,
+    },
+    {
+      id: 'inGoodStanding',
+      title: 'In Good Standing',
+      description: 'Products that do not currently require action.',
+      rows: buckets.inGoodStanding,
+    },
+  ]
+
+  if (buckets.reviewed.length > 0) {
+    sections.push({
+      id: 'reviewed',
+      title: 'Reviewed Products',
+      description: 'Inventory records that have already been checked.',
+      rows: buckets.reviewed,
+    })
+  }
+
+  return sections
 }
 
 export function sortProductAlertRows(rows: ProductAlertRow[]): ProductAlertRow[] {
