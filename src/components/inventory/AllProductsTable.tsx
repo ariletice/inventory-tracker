@@ -202,6 +202,30 @@ function ProductRows({
   )
 }
 
+const SECTION_HEADER_STYLES: Record<
+  UrgencySectionId,
+  { header: string; title: string; description: string; icon: string }
+> = {
+  requiresActionToday: {
+    header: 'bg-brand-danger',
+    title: 'text-white',
+    description: 'text-white/90',
+    icon: 'text-white',
+  },
+  monitorClosely: {
+    header: 'bg-brand-orange',
+    title: 'text-white',
+    description: 'text-white/90',
+    icon: 'text-white',
+  },
+  noActionRequired: {
+    header: 'bg-emerald-700',
+    title: 'text-white',
+    description: 'text-white/90',
+    icon: 'text-white',
+  },
+}
+
 function UrgencySectionBlock({
   section,
   defaultOpen,
@@ -222,26 +246,29 @@ function UrgencySectionBlock({
     ? section.rows
     : section.rows.slice(0, SECTION_PAGE_SIZE)
   const hasMore = section.rows.length > SECTION_PAGE_SIZE
+  const styles = SECTION_HEADER_STYLES[section.id]
 
   return (
-    <section className="rounded-2xl border border-brand-border bg-brand-white shadow-sm">
+    <section className="overflow-hidden rounded-2xl border border-brand-border bg-brand-white shadow-sm">
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="flex w-full items-start justify-between gap-4 px-5 py-5 text-left sm:px-6"
+        className={`flex w-full items-start justify-between gap-4 px-5 py-5 text-left sm:px-6 ${styles.header}`}
         aria-expanded={open}
       >
         <div className="min-w-0">
-          <h2 className="text-lg font-semibold text-brand-navy">
+          <h2 className={`text-lg font-semibold ${styles.title}`}>
             {section.title}
-            <span className="ml-2 text-sm font-medium text-brand-muted">
+            <span className={`ml-2 text-sm font-medium ${styles.description}`}>
               ({section.rows.length})
             </span>
           </h2>
-          <p className="mt-1 text-sm text-brand-muted">{section.description}</p>
+          <p className={`mt-1 text-sm ${styles.description}`}>
+            {section.description}
+          </p>
         </div>
         <ChevronDown
-          className={`mt-1 h-5 w-5 shrink-0 text-brand-muted transition-transform ${
+          className={`mt-1 h-5 w-5 shrink-0 transition-transform ${styles.icon} ${
             open ? 'rotate-180' : ''
           }`}
           aria-hidden
@@ -251,12 +278,12 @@ function UrgencySectionBlock({
       {open && (
         <>
           {section.rows.length === 0 ? (
-            <p className="border-t border-brand-border px-5 py-4 text-sm text-brand-muted sm:px-6">
+            <p className="border-t border-brand-border bg-brand-white px-5 py-4 text-sm text-brand-muted sm:px-6">
               None right now.
             </p>
           ) : (
             <>
-              <div className="overflow-x-auto border-t border-brand-border">
+              <div className="overflow-x-auto border-t border-brand-border bg-brand-white">
                 <table className="w-full min-w-[960px] text-left text-sm">
                   <thead className="sticky top-0 z-10 bg-brand-bg">
                     <tr className="border-b border-brand-border text-xs font-semibold uppercase tracking-wide text-brand-muted">
@@ -300,7 +327,7 @@ function UrgencySectionBlock({
                 </table>
               </div>
               {hasMore && (
-                <div className="border-t border-brand-border px-5 py-3 sm:px-6">
+                <div className="border-t border-brand-border bg-brand-white px-5 py-3 sm:px-6">
                   <button
                     type="button"
                     onClick={() => setShowAll((prev) => !prev)}
