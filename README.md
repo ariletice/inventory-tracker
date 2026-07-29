@@ -30,4 +30,10 @@ The app opens on `/upload`. There is no separate verification step.
 
 ## Sample template
 
-Download `public/sample-inventory-template.csv` from the upload page. Required columns: SKU, Product Name, Brand, Category, Storage Conditions, Quantity on Hand, Reorder Threshold, Reorder Quantity, Sales Rate, Expiration Date.
+Download `public/sample-inventory-template.csv` from the upload page.
+
+Required columns: Product ID, Product Name, Brand, Quantity in Stock (liters/kg), Minimum Stock Threshold (liters/kg), Reorder Quantity (liters/kg), Production Date, Expiration Date.
+
+Optional columns: Shelf Life (days), Quantity Sold (liters/kg), Storage Condition, Location.
+
+Each row is one inventory record (for example, a batch). The same Product ID may appear on more than one row; the app assigns a unique internal `recordId` per row.
