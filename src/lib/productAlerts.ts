@@ -23,10 +23,9 @@ const STATUS_REASONS: Record<Exclude<StatusLabel, 'Reviewed'>, string> = {
 }
 
 export type UrgencySectionId =
-  | 'critical'
-  | 'needsActionSoon'
-  | 'inGoodStanding'
-  | 'reviewed'
+  | 'requiresActionToday'
+  | 'monitorClosely'
+  | 'noActionRequired'
 
 export type UrgencySection = {
   id: UrgencySectionId
@@ -145,8 +144,66 @@ export function buildProductAlertRow(
   }
 }
 
-function compareWithinSection(a: ProductAlertRow, b: ProductAlertRow): number {
-  if (a.sortRank !== b.sortRank) return a.sortRank - b.sortRank
+function isExpired(row: ProductAlertRow): boolean {
+  return row.statuses.includes('Expired')
+}
+
+function isOutOfStock(row: ProductAlertRow): boolean {
+  return row.quantityInStock === 0
+}
+
+function isLowStock(row: ProductAlertRow): boolean {
+  return (
+    row.quantityInStock > 0 &&
+    row.quantityInStock <= row.minimumStockThreshold
+  )
+}
+
+function isExpiringSoon(row: ProductAlertRow): boolean {
+  return row.statuses.includes('Expiring Soon')
+}
+
+function isNearThreshold(row: ProductAlertRow): boolean {
+  const threshold = row.minimumStockThreshold
+  const qty = row.quantityInStock
+  return qty > threshold && qty <= threshold * 1.25
+}
+
+function requiresActionRank(row: ProductAlertRow): number {
+  if (isExpired(row)) return 0
+  if (isOutOfStock(row)) return 1
+  if (isLowStock(row)) return 2
+  return 3
+}
+
+function compareRequiresAction(a: ProductAlertRow, b: ProductAlertRow): number {
+  const rankDiff = requiresActionRank(a) - requiresActionRank(b)
+  if (rankDiff !== 0) return rankDiff
+
+  if (isExpired(a) && isExpired(b)) {
+    return a.daysUntilExpiry - b.daysUntilExpiry
+  }
+
+  if (a.quantityInStock !== b.quantityInStock) {
+    return a.quantityInStock - b.quantityInStock
+  }
+
+  return a.daysUntilExpiry - b.daysUntilExpiry
+}
+
+function compareMonitorClosely(a: ProductAlertRow, b: ProductAlertRow): number {
+  if (a.daysUntilExpiry !== b.daysUntilExpiry) {
+    return a.daysUntilExpiry - b.daysUntilExpiry
+  }
+
+  const aDistance = a.quantityInStock - a.minimumStockThreshold
+  const bDistance = b.quantityInStock - b.minimumStockThreshold
+  if (aDistance !== bDistance) return aDistance - bDistance
+
+  return a.quantityInStock - b.quantityInStock
+}
+
+function compareNoActionRequired(a: ProductAlertRow, b: ProductAlertRow): number {
   if (a.daysUntilExpiry !== b.daysUntilExpiry) {
     return a.daysUntilExpiry - b.daysUntilExpiry
   }
@@ -157,24 +214,22 @@ function compareWithinSection(a: ProductAlertRow, b: ProductAlertRow): number {
 }
 
 function assignUrgencySection(row: ProductAlertRow): UrgencySectionId {
-  if (row.reviewed) return 'reviewed'
-
-  const set = new Set(row.statuses)
-  if (set.has('Expired')) return 'critical'
-  if (set.has('Out of Stock')) return 'critical'
-  if (set.has('Low Stock')) return 'needsActionSoon'
-  if (set.has('Expiring Soon')) return 'needsActionSoon'
-  return 'inGoodStanding'
+  if (isExpired(row) || isOutOfStock(row) || isLowStock(row)) {
+    return 'requiresActionToday'
+  }
+  if (isExpiringSoon(row) || isNearThreshold(row)) {
+    return 'monitorClosely'
+  }
+  return 'noActionRequired'
 }
 
 export function groupProductsByUrgency(
   products: InventoryProduct[],
 ): UrgencySection[] {
   const buckets: Record<UrgencySectionId, ProductAlertRow[]> = {
-    critical: [],
-    needsActionSoon: [],
-    inGoodStanding: [],
-    reviewed: [],
+    requiresActionToday: [],
+    monitorClosely: [],
+    noActionRequired: [],
   }
 
   for (const product of products) {
@@ -182,43 +237,33 @@ export function groupProductsByUrgency(
     buckets[assignUrgencySection(row)].push(row)
   }
 
-  for (const id of Object.keys(buckets) as UrgencySectionId[]) {
-    buckets[id].sort(compareWithinSection)
-  }
+  buckets.requiresActionToday.sort(compareRequiresAction)
+  buckets.monitorClosely.sort(compareMonitorClosely)
+  buckets.noActionRequired.sort(compareNoActionRequired)
 
-  const sections: UrgencySection[] = [
+  return [
     {
-      id: 'critical',
-      title: 'Critical Products',
+      id: 'requiresActionToday',
+      title: 'Requires Action Today',
       description:
-        'Expired and out-of-stock inventory requiring immediate action.',
-      rows: buckets.critical,
+        'Expired, out-of-stock, and low-stock products requiring immediate review.',
+      rows: buckets.requiresActionToday,
     },
     {
-      id: 'needsActionSoon',
-      title: 'Needs Action Soon',
+      id: 'monitorClosely',
+      title: 'Monitor Closely',
       description:
-        'Products that need attention before they become critical.',
-      rows: buckets.needsActionSoon,
+        'Products nearing their stock threshold or expiration date that may require action soon.',
+      rows: buckets.monitorClosely,
     },
     {
-      id: 'inGoodStanding',
-      title: 'In Good Standing',
-      description: 'Products that do not currently require action.',
-      rows: buckets.inGoodStanding,
+      id: 'noActionRequired',
+      title: 'No Action Required',
+      description:
+        'Products with healthy stock levels and no upcoming expiration concerns.',
+      rows: buckets.noActionRequired,
     },
   ]
-
-  if (buckets.reviewed.length > 0) {
-    sections.push({
-      id: 'reviewed',
-      title: 'Reviewed Products',
-      description: 'Inventory records that have already been checked.',
-      rows: buckets.reviewed,
-    })
-  }
-
-  return sections
 }
 
 export function sortProductAlertRows(rows: ProductAlertRow[]): ProductAlertRow[] {

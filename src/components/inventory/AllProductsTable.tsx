@@ -55,7 +55,6 @@ function formatDays(value: number | undefined): string {
 }
 
 function displayStatuses(row: ProductAlertRow): StatusLabel[] {
-  if (row.reviewed) return ['Reviewed']
   return row.statuses.slice(0, 2)
 }
 
@@ -90,8 +89,8 @@ function ProductRows({
           <Fragment key={row.recordId}>
             <tr
               className={`border-b border-brand-border transition hover:bg-brand-bg/70 ${
-                isReviewed ? 'bg-gray-50/80 opacity-45' : ''
-              } ${isExpanded ? 'border-b-0' : ''}`}
+                isExpanded ? 'border-b-0' : ''
+              }`}
             >
               <td className="px-4 py-3 align-middle">
                 <input
@@ -124,11 +123,7 @@ function ProductRows({
                   ))}
                 </div>
               </td>
-              <td
-                className={`px-3 py-3 align-middle text-brand-text ${
-                  isReviewed ? 'text-brand-muted' : 'font-medium'
-                }`}
-              >
+              <td className="px-3 py-3 align-middle font-medium text-brand-text">
                 {row.recommendedAction}
               </td>
               <td className="px-3 py-3 pr-5 align-middle">
@@ -150,7 +145,7 @@ function ProductRows({
               </td>
             </tr>
             {isExpanded && (
-              <tr className={isReviewed ? 'opacity-45' : ''}>
+              <tr>
                 <td
                   colSpan={9}
                   className="border-b border-brand-border bg-brand-bg px-5 py-4 sm:px-6"
@@ -326,10 +321,9 @@ function UrgencySectionBlock({
 }
 
 const DEFAULT_OPEN: Record<UrgencySectionId, boolean> = {
-  critical: true,
-  needsActionSoon: true,
-  inGoodStanding: false,
-  reviewed: true,
+  requiresActionToday: true,
+  monitorClosely: true,
+  noActionRequired: false,
 }
 
 export function AllProductsTable({
