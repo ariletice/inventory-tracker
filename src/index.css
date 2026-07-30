@@ -17,6 +17,11 @@
   --color-brand-danger-light: #fef3f2;
   --color-brand-yellow: #eab308;
   --color-brand-yellow-light: #fef9c3;
+  --color-brand-success: #047857;
+  --color-brand-success-light: #ecfdf5;
+  --color-brand-warning: #f59e0b;
+  --color-brand-warning-light: #fffbeb;
+  --color-brand-surface-muted: #f1f5f9;
 }
 
 html,

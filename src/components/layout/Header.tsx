@@ -30,6 +30,14 @@ export function Header({
       })
     : null
 
+  const metaParts: string[] = []
+  if (typeof totalProducts === 'number') {
+    metaParts.push(`${totalProducts} inventory records analyzed`)
+  }
+  if (fileName && uploadedDate && uploadedTime) {
+    metaParts.push(`${fileName} · Uploaded ${uploadedDate} at ${uploadedTime}`)
+  }
+
   return (
     <header className="border-b border-brand-border bg-brand-white">
       <div className="flex flex-col gap-4 px-4 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
@@ -50,14 +58,9 @@ export function Header({
               See which products are out of stock, running low, or approaching
               expiration.
             </p>
-            {typeof totalProducts === 'number' && (
-              <p className="mt-2 text-sm font-medium text-brand-navy">
-                {totalProducts} inventory records analyzed
-              </p>
-            )}
-            {fileName && uploadedDate && uploadedTime && (
-              <p className="mt-1 text-xs text-brand-muted">
-                {fileName} · Uploaded {uploadedDate} at {uploadedTime}
+            {metaParts.length > 0 && (
+              <p className="mt-2 text-xs text-brand-muted">
+                {metaParts.join(' · ')}
               </p>
             )}
           </div>

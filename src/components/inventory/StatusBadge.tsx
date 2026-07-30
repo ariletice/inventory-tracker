@@ -19,7 +19,7 @@ const styles: Record<Exclude<StatusLabel, 'Reviewed'>, string> = {
 export function StatusBadge({ label }: StatusBadgeProps) {
   if (label === 'Reviewed') {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full border border-slate-300 bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">
+      <span className="inline-flex items-center gap-1 rounded-full border border-brand-border bg-brand-surface-muted px-2.5 py-0.5 text-xs font-medium text-brand-navy">
         <Check className="h-3 w-3" aria-hidden strokeWidth={2.5} />
         Reviewed
       </span>

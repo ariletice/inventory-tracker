@@ -246,21 +246,20 @@ export function groupProductsByUrgency(
       id: 'requiresActionToday',
       title: 'Requires Action Today',
       description:
-        'Expired, out-of-stock, and low-stock products requiring immediate review.',
+        'Expired, out-of-stock, and low-stock items needing review now.',
       rows: buckets.requiresActionToday,
     },
     {
       id: 'monitorClosely',
       title: 'Monitor Closely',
       description:
-        'Products nearing their stock threshold or expiration date that may require action soon.',
+        'Nearing stock threshold or expiration; action may be needed soon.',
       rows: buckets.monitorClosely,
     },
     {
       id: 'noActionRequired',
       title: 'No Action Required',
-      description:
-        'Products with healthy stock levels and no upcoming expiration concerns.',
+      description: 'Healthy stock levels with no near-term expiration concerns.',
       rows: buckets.noActionRequired,
     },
   ]

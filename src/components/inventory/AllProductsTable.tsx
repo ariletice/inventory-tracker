@@ -1,5 +1,12 @@
-import { Fragment, useMemo, useState } from 'react'
-import { ChevronDown, CircleCheck, Eye, TriangleAlert, Upload } from 'lucide-react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
+import {
+  ChevronDown,
+  CircleCheck,
+  Eye,
+  Search,
+  TriangleAlert,
+  Upload,
+} from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import {
   groupProductsByUrgency,
@@ -18,10 +25,17 @@ import { StockLevelCell } from './StockLevelCell'
 type ReviewFilter = 'unreviewed' | 'all' | 'reviewed'
 type PageSize = 10 | 25 | 50
 
+export type SectionFocusRequest = {
+  sectionId: UrgencySectionId
+  statusFilter: string
+}
+
 type AllProductsTableProps = {
   products: InventoryProduct[]
   onToggleReviewed: (id: string) => void
   onUploadClick: () => void
+  sectionFocus?: SectionFocusRequest | null
+  onSectionFocusApplied?: () => void
 }
 
 type StatusFilterOption = {
@@ -172,10 +186,14 @@ function ProductRows({
           <Fragment key={row.recordId}>
             <tr
               className={`border-b border-brand-border transition hover:bg-brand-bg/70 ${
-                isReviewed ? 'bg-slate-50' : ''
+                isReviewed ? 'bg-brand-blue-light/40' : 'bg-brand-white'
               } ${isExpanded ? 'border-b-0' : ''}`}
             >
-              <td className="px-4 py-3 align-middle">
+              <td
+                className={`sticky left-0 z-[1] px-4 py-3 align-middle ${
+                  isReviewed ? 'bg-brand-blue-light/40' : 'bg-brand-white'
+                }`}
+              >
                 <input
                   type="checkbox"
                   checked={isReviewed}
@@ -184,13 +202,17 @@ function ProductRows({
                   className="h-4 w-4 rounded border-brand-border text-brand-blue focus:ring-brand-blue"
                 />
               </td>
-              <td className="px-3 py-3 align-middle font-medium text-brand-text">
+              <td
+                className={`sticky left-12 z-[1] px-3 py-3 align-middle font-medium text-brand-text shadow-[2px_0_4px_-2px_rgba(16,42,67,0.12)] ${
+                  isReviewed ? 'bg-brand-blue-light/40' : 'bg-brand-white'
+                }`}
+              >
                 {row.productName}
               </td>
               <td className="px-3 py-3 align-middle text-brand-muted">
                 {row.brand}
               </td>
-              <td className="px-3 py-3 align-middle text-brand-muted">
+              <td className="hidden px-3 py-3 align-middle text-brand-muted lg:table-cell">
                 {row.category?.trim() || 'Dairy'}
               </td>
               <td className="px-3 py-3 align-middle">
@@ -231,7 +253,7 @@ function ProductRows({
               </td>
             </tr>
             {isExpanded && (
-              <tr className={isReviewed ? 'bg-slate-50' : ''}>
+              <tr className={isReviewed ? 'bg-brand-blue-light/40' : ''}>
                 <td
                   colSpan={9}
                   className="border-b border-brand-border bg-brand-bg px-5 py-4 sm:px-6"
@@ -241,6 +263,10 @@ function ProductRows({
                       <DetailItem
                         label="Product ID"
                         value={displayValue(row.productId)}
+                      />
+                      <DetailItem
+                        label="Category"
+                        value={row.category?.trim() || 'Dairy'}
                       />
                       <DetailItem
                         label="Production Date"
@@ -301,21 +327,21 @@ const SECTION_HEADER_STYLES: Record<
   requiresActionToday: {
     header: 'bg-brand-danger',
     title: 'text-white',
-    description: 'text-white/90',
+    description: 'text-white/80',
     icon: 'text-white',
     StatusIcon: TriangleAlert,
   },
   monitorClosely: {
     header: 'bg-brand-orange',
     title: 'text-white',
-    description: 'text-white/90',
+    description: 'text-white/80',
     icon: 'text-white',
     StatusIcon: Eye,
   },
   noActionRequired: {
-    header: 'bg-emerald-700',
+    header: 'bg-brand-success',
     title: 'text-white',
-    description: 'text-white/90',
+    description: 'text-white/80',
     icon: 'text-white',
     StatusIcon: CircleCheck,
   },
@@ -327,12 +353,16 @@ function UrgencySectionBlock({
   expandedId,
   setExpandedId,
   onToggleReviewed,
+  sectionFocus,
+  onSectionFocusApplied,
 }: {
   section: UrgencySection
   defaultOpen: boolean
   expandedId: string | null
   setExpandedId: (id: string | null) => void
   onToggleReviewed: (id: string) => void
+  sectionFocus?: SectionFocusRequest | null
+  onSectionFocusApplied?: () => void
 }) {
   const defaultReview = DEFAULT_REVIEW_FILTER[section.id]
 
@@ -343,6 +373,20 @@ function UrgencySectionBlock({
   const [reviewFilter, setReviewFilter] = useState<ReviewFilter>(defaultReview)
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState<PageSize>(10)
+
+  useEffect(() => {
+    if (!sectionFocus || sectionFocus.sectionId !== section.id) return
+    setOpen(true)
+    setStatusFilter(sectionFocus.statusFilter)
+    setReviewFilter('all')
+    setPage(1)
+    requestAnimationFrame(() => {
+      document
+        .getElementById(`section-${section.id}`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+    onSectionFocusApplied?.()
+  }, [sectionFocus, section.id, onSectionFocusApplied])
 
   const brandOptions = useMemo(() => {
     const brands = [
@@ -417,7 +461,10 @@ function UrgencySectionBlock({
   }
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-brand-border bg-brand-white shadow-sm">
+    <section
+      id={`section-${section.id}`}
+      className="overflow-hidden rounded-2xl border border-brand-border bg-brand-white shadow-sm scroll-mt-4"
+    >
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
@@ -458,19 +505,25 @@ function UrgencySectionBlock({
           ) : (
             <>
               <div className="flex flex-wrap items-center gap-3 border-t border-brand-border bg-brand-white px-5 py-3 sm:px-6">
-                <input
-                  type="search"
-                  value={searchQuery}
-                  onChange={(e) => updateSearch(e.target.value)}
-                  placeholder="Search products or brands..."
-                  aria-label={`Search ${section.title}`}
-                  className={`min-w-[200px] flex-1 ${SELECT_CLASS}`}
-                />
+                <div className="relative min-w-[220px] flex-[1.5]">
+                  <Search
+                    className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-muted"
+                    aria-hidden="true"
+                  />
+                  <input
+                    type="search"
+                    value={searchQuery}
+                    onChange={(e) => updateSearch(e.target.value)}
+                    placeholder="Search products or brands..."
+                    aria-label={`Search ${section.title}`}
+                    className={`w-full pl-9 ${SELECT_CLASS}`}
+                  />
+                </div>
                 <select
                   value={statusFilter}
                   onChange={(e) => updateStatus(e.target.value)}
                   aria-label={`Filter ${section.title} by status`}
-                  className={SELECT_CLASS}
+                  className={`min-w-[10rem] flex-none ${SELECT_CLASS}`}
                 >
                   {statusOptions.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -482,7 +535,7 @@ function UrgencySectionBlock({
                   value={brandFilter}
                   onChange={(e) => updateBrand(e.target.value)}
                   aria-label={`Filter ${section.title} by brand`}
-                  className={SELECT_CLASS}
+                  className={`min-w-[9rem] flex-none ${SELECT_CLASS}`}
                 >
                   <option value="all">All Brands</option>
                   {brandOptions.map((brand) => (
@@ -497,7 +550,7 @@ function UrgencySectionBlock({
                     updateReview(e.target.value as ReviewFilter)
                   }
                   aria-label={`Filter ${section.title} by review status`}
-                  className={SELECT_CLASS}
+                  className={`min-w-[8rem] flex-none ${SELECT_CLASS}`}
                 >
                   <option value="unreviewed">Unreviewed</option>
                   <option value="all">All</option>
@@ -520,28 +573,33 @@ function UrgencySectionBlock({
                 </p>
               ) : (
                 <>
-                  <div className="border-t border-brand-border bg-brand-white px-5 py-2.5 text-sm text-brand-muted sm:px-6">
-                    Showing {startIndex + 1}–{endIndex} of {filteredRows.length}{' '}
-                    results
-                  </div>
                   <div className="overflow-x-auto border-t border-brand-border bg-brand-white">
                     <table className="w-full min-w-[960px] text-left text-sm">
                       <thead className="sticky top-0 z-10 bg-brand-bg">
                         <tr className="border-b border-brand-border text-xs font-semibold uppercase tracking-wide text-brand-muted">
-                          <th scope="col" className="w-20 px-4 py-3">
+                          <th
+                            scope="col"
+                            className="sticky left-0 z-[2] w-20 bg-brand-bg px-4 py-3"
+                          >
                             Reviewed
                           </th>
-                          <th scope="col" className="px-3 py-3">
+                          <th
+                            scope="col"
+                            className="sticky left-12 z-[2] bg-brand-bg px-3 py-3 shadow-[2px_0_4px_-2px_rgba(16,42,67,0.12)]"
+                          >
                             Product
                           </th>
                           <th scope="col" className="px-3 py-3">
                             Brand
                           </th>
-                          <th scope="col" className="px-3 py-3">
+                          <th
+                            scope="col"
+                            className="hidden px-3 py-3 lg:table-cell"
+                          >
                             Category
                           </th>
                           <th scope="col" className="px-3 py-3">
-                            Stock Level
+                            Stock Level (liters/kg)
                           </th>
                           <th scope="col" className="px-3 py-3">
                             Expiration
@@ -569,23 +627,29 @@ function UrgencySectionBlock({
                   </div>
 
                   <div className="flex flex-col gap-3 border-t border-brand-border bg-brand-white px-5 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-                    <label className="flex items-center gap-2 text-sm text-brand-muted">
-                      Rows per page
-                      <select
-                        value={pageSize}
-                        onChange={(e) =>
-                          updatePageSize(Number(e.target.value) as PageSize)
-                        }
-                        className={SELECT_CLASS}
-                        aria-label={`Rows per page for ${section.title}`}
-                      >
-                        {PAGE_SIZE_OPTIONS.map((size) => (
-                          <option key={size} value={size}>
-                            {size}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+                    <div className="flex flex-wrap items-center gap-3 text-sm text-brand-muted">
+                      <span>
+                        Showing {startIndex + 1}–{endIndex} of{' '}
+                        {filteredRows.length} results
+                      </span>
+                      <label className="flex items-center gap-2">
+                        Rows per page
+                        <select
+                          value={pageSize}
+                          onChange={(e) =>
+                            updatePageSize(Number(e.target.value) as PageSize)
+                          }
+                          className={SELECT_CLASS}
+                          aria-label={`Rows per page for ${section.title}`}
+                        >
+                          {PAGE_SIZE_OPTIONS.map((size) => (
+                            <option key={size} value={size}>
+                              {size}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
 
                     <div className="flex flex-wrap items-center gap-1">
                       <button
@@ -657,6 +721,8 @@ export function AllProductsTable({
   products,
   onToggleReviewed,
   onUploadClick,
+  sectionFocus = null,
+  onSectionFocusApplied,
 }: AllProductsTableProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
@@ -691,6 +757,8 @@ export function AllProductsTable({
           expandedId={expandedId}
           setExpandedId={setExpandedId}
           onToggleReviewed={onToggleReviewed}
+          sectionFocus={sectionFocus}
+          onSectionFocusApplied={onSectionFocusApplied}
         />
       ))}
     </div>

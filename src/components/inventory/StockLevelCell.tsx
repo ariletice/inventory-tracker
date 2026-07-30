@@ -12,14 +12,19 @@ function isValidThreshold(threshold: number): boolean {
 }
 
 function barFillClass(displayPercentage: number, quantityInStock: number): string {
-  if (quantityInStock === 0 || displayPercentage === 0) return 'bg-red-800'
+  if (quantityInStock === 0 || displayPercentage === 0) {
+    return 'bg-brand-danger'
+  }
   if (displayPercentage <= 50) return 'bg-brand-danger'
   if (displayPercentage <= 100) return 'bg-brand-orange'
-  if (displayPercentage <= 125) return 'bg-amber-400'
-  return 'bg-emerald-600'
+  if (displayPercentage <= 125) return 'bg-brand-warning'
+  return 'bg-brand-success'
 }
 
-function percentageTextClass(displayPercentage: number, quantityInStock: number): string {
+function percentageTextClass(
+  displayPercentage: number,
+  quantityInStock: number,
+): string {
   if (quantityInStock === 0 || displayPercentage === 0) return 'text-white'
   if (displayPercentage <= 100) return 'text-white'
   if (displayPercentage <= 125) return 'text-brand-navy'
@@ -36,10 +41,8 @@ export function StockLevelCell({
 
   if (!isValidThreshold(minimumStockThreshold)) {
     return (
-      <div className="min-w-[140px]">
-        <p className="tabular-nums text-brand-text">
-          {quantityLabel} liters/kg
-        </p>
+      <div className="min-w-[120px]">
+        <p className="tabular-nums text-brand-text">{quantityLabel}</p>
         <p className="mt-1 text-xs text-brand-muted">Threshold unavailable</p>
       </div>
     )
@@ -53,12 +56,12 @@ export function StockLevelCell({
   const fillTooNarrow = barWidth < 28
 
   return (
-    <div className="min-w-[150px] max-w-[200px]">
+    <div className="min-w-[140px] max-w-[180px]">
       <p className="tabular-nums text-brand-text">
-        {quantityInStock} / {minimumStockThreshold} liters/kg
+        {quantityInStock} / {minimumStockThreshold}
       </p>
       <div
-        className="relative mt-1.5 h-4 w-full overflow-hidden rounded-full bg-slate-100"
+        className="relative mt-1.5 h-5 w-full overflow-hidden rounded-full bg-brand-surface-muted"
         role="progressbar"
         aria-valuemin={0}
         aria-valuemax={100}

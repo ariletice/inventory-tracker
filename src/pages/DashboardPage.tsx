@@ -2,18 +2,46 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Upload } from 'lucide-react'
 import { AppShell } from '../components/layout/AppShell'
-import { SummaryCards } from '../components/dashboard/SummaryCards'
-import { AllProductsTable } from '../components/inventory/AllProductsTable'
+import {
+  SummaryCards,
+  type SummaryCardKey,
+} from '../components/dashboard/SummaryCards'
+import {
+  AllProductsTable,
+  type SectionFocusRequest,
+} from '../components/inventory/AllProductsTable'
 import { useInventory } from '../context/InventoryContext'
 import { getAlertCounts } from '../lib/priority'
 
 type NavId = 'dashboard' | 'inventory' | 'upload' | 'reports' | 'settings'
+
+const CARD_FOCUS: Record<SummaryCardKey, SectionFocusRequest> = {
+  expired: {
+    sectionId: 'requiresActionToday',
+    statusFilter: 'Expired',
+  },
+  outOfStock: {
+    sectionId: 'requiresActionToday',
+    statusFilter: 'Out of Stock',
+  },
+  lowStock: {
+    sectionId: 'requiresActionToday',
+    statusFilter: 'Low Stock',
+  },
+  expiringWithin14Days: {
+    sectionId: 'monitorClosely',
+    statusFilter: 'Expiring Soon',
+  },
+}
 
 export function DashboardPage() {
   const navigate = useNavigate()
   const { importState, toggleReviewed, resetToUpload } = useInventory()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [activeNav, setActiveNav] = useState<NavId>('dashboard')
+  const [sectionFocus, setSectionFocus] = useState<SectionFocusRequest | null>(
+    null,
+  )
 
   const hasData = Boolean(importState && importState.products.length > 0)
   const products = importState?.products ?? []
@@ -76,22 +104,32 @@ export function DashboardPage() {
             Needs Attention Today
           </h2>
           <p className="mb-3 text-sm text-brand-muted">
-            Products that require immediate or upcoming action based on stock
-            levels and expiration dates.
+            Counts of products needing action based on stock and expiration.
           </p>
           <SummaryCards
             expired={alertCounts.expired}
             outOfStock={alertCounts.outOfStock}
             lowStock={alertCounts.lowStock}
             expiringWithin14Days={alertCounts.expiringWithin14Days}
+            onCardClick={(key) => setSectionFocus(CARD_FOCUS[key])}
           />
         </section>
 
-        <AllProductsTable
-          products={products}
-          onToggleReviewed={toggleReviewed}
-          onUploadClick={goUpload}
-        />
+        <section>
+          <h2 className="mb-1 text-lg font-semibold text-brand-navy">
+            Inventory by priority
+          </h2>
+          <p className="mb-3 text-sm text-brand-muted">
+            Work through each section; filters apply only within that section.
+          </p>
+          <AllProductsTable
+            products={products}
+            onToggleReviewed={toggleReviewed}
+            onUploadClick={goUpload}
+            sectionFocus={sectionFocus}
+            onSectionFocusApplied={() => setSectionFocus(null)}
+          />
+        </section>
       </div>
     </AppShell>
   )
