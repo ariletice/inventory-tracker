@@ -13,6 +13,7 @@ import type {
   StatusLabel,
 } from '../../types/inventory'
 import { StatusBadge } from './StatusBadge'
+import { StockLevelCell } from './StockLevelCell'
 
 type ReviewFilter = 'unreviewed' | 'all' | 'reviewed'
 type PageSize = 10 | 25 | 50
@@ -192,8 +193,11 @@ function ProductRows({
               <td className="px-3 py-3 align-middle text-brand-muted">
                 {row.category?.trim() || 'Dairy'}
               </td>
-              <td className="px-3 py-3 align-middle tabular-nums text-brand-text">
-                {formatLitersKg(row.quantityInStock)}
+              <td className="px-3 py-3 align-middle">
+                <StockLevelCell
+                  quantityInStock={row.quantityInStock}
+                  minimumStockThreshold={row.minimumStockThreshold}
+                />
               </td>
               <td className="px-3 py-3 align-middle text-brand-muted">
                 {formatDate(row.expirationDate)}
@@ -537,7 +541,7 @@ function UrgencySectionBlock({
                             Category
                           </th>
                           <th scope="col" className="px-3 py-3">
-                            Stock
+                            Stock Level
                           </th>
                           <th scope="col" className="px-3 py-3">
                             Expiration
