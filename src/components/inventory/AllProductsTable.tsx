@@ -368,6 +368,7 @@ function UrgencySectionBlock({
   const pageNumbers = getPageNumbers(currentPage, totalPages)
 
   const styles = SECTION_HEADER_STYLES[section.id]
+  const StatusIcon = styles.StatusIcon
   const statusOptions = STATUS_OPTIONS[section.id]
 
   const filtersAreDirty =
