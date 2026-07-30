@@ -1,5 +1,6 @@
 import { Fragment, useMemo, useState } from 'react'
-import { ChevronDown, Upload } from 'lucide-react'
+import { ChevronDown, CircleCheck, Eye, TriangleAlert, Upload } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import {
   groupProductsByUrgency,
   isNearThreshold,
@@ -285,25 +286,34 @@ function ProductRows({
 
 const SECTION_HEADER_STYLES: Record<
   UrgencySectionId,
-  { header: string; title: string; description: string; icon: string }
+  {
+    header: string
+    title: string
+    description: string
+    icon: string
+    StatusIcon: LucideIcon
+  }
 > = {
   requiresActionToday: {
     header: 'bg-brand-danger',
     title: 'text-white',
     description: 'text-white/90',
     icon: 'text-white',
+    StatusIcon: TriangleAlert,
   },
   monitorClosely: {
     header: 'bg-brand-orange',
     title: 'text-white',
     description: 'text-white/90',
     icon: 'text-white',
+    StatusIcon: Eye,
   },
   noActionRequired: {
     header: 'bg-emerald-700',
     title: 'text-white',
     description: 'text-white/90',
     icon: 'text-white',
+    StatusIcon: CircleCheck,
   },
 }
 
@@ -409,22 +419,28 @@ function UrgencySectionBlock({
         className={`flex w-full items-start justify-between gap-4 px-5 py-5 text-left sm:px-6 ${styles.header}`}
         aria-expanded={open}
       >
-        <div className="min-w-0">
-          <h2 className={`text-lg font-semibold ${styles.title}`}>
-            {section.title}
-            <span className={`ml-2 text-sm font-medium ${styles.description}`}>
-              ({section.rows.length})
-            </span>
-          </h2>
-          <p className={`mt-1 text-sm ${styles.description}`}>
-            {section.description}
-          </p>
+        <div className="flex min-w-0 items-start gap-3">
+          <StatusIcon
+            className={`mt-0.5 h-5 w-5 shrink-0 ${styles.icon}`}
+            aria-hidden="true"
+          />
+          <div className="min-w-0">
+            <h2 className={`text-lg font-semibold ${styles.title}`}>
+              {section.title}
+              <span className={`ml-2 text-sm font-medium ${styles.description}`}>
+                ({section.rows.length})
+              </span>
+            </h2>
+            <p className={`mt-1 text-sm ${styles.description}`}>
+              {section.description}
+            </p>
+          </div>
         </div>
         <ChevronDown
           className={`mt-1 h-5 w-5 shrink-0 transition-transform ${styles.icon} ${
             open ? 'rotate-180' : ''
           }`}
-          aria-hidden
+          aria-hidden="true"
         />
       </button>
 
