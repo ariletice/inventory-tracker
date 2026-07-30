@@ -163,7 +163,7 @@ function isExpiringSoon(row: ProductAlertRow): boolean {
   return row.statuses.includes('Expiring Soon')
 }
 
-function isNearThreshold(row: ProductAlertRow): boolean {
+export function isNearThreshold(row: ProductAlertRow): boolean {
   const threshold = row.minimumStockThreshold
   const qty = row.quantityInStock
   return qty > threshold && qty <= threshold * 1.25

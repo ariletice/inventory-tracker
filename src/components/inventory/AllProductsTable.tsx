@@ -2,6 +2,7 @@ import { Fragment, useMemo, useState } from 'react'
 import { ChevronDown, Upload } from 'lucide-react'
 import {
   groupProductsByUrgency,
+  isNearThreshold,
   type UrgencySection,
   type UrgencySectionId,
 } from '../../lib/productAlerts'
@@ -12,14 +13,47 @@ import type {
 } from '../../types/inventory'
 import { StatusBadge } from './StatusBadge'
 
-const SECTION_PAGE_SIZE = 25
-
 type ReviewFilter = 'unreviewed' | 'all' | 'reviewed'
+type PageSize = 10 | 25 | 50
 
 type AllProductsTableProps = {
   products: InventoryProduct[]
   onToggleReviewed: (id: string) => void
   onUploadClick: () => void
+}
+
+type StatusFilterOption = {
+  value: string
+  label: string
+}
+
+const PAGE_SIZE_OPTIONS: PageSize[] = [10, 25, 50]
+
+const SELECT_CLASS =
+  'h-9 rounded-lg border border-brand-border bg-brand-white px-3 text-sm text-brand-text shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue'
+
+const STATUS_OPTIONS: Record<UrgencySectionId, StatusFilterOption[]> = {
+  requiresActionToday: [
+    { value: 'all', label: 'All Statuses' },
+    { value: 'Expired', label: 'Expired' },
+    { value: 'Out of Stock', label: 'Out of Stock' },
+    { value: 'Low Stock', label: 'Low Stock' },
+  ],
+  monitorClosely: [
+    { value: 'all', label: 'All Statuses' },
+    { value: 'Expiring Soon', label: 'Expiring Within 14 Days' },
+    { value: 'nearThreshold', label: 'Near Reorder Threshold' },
+  ],
+  noActionRequired: [
+    { value: 'all', label: 'All Statuses' },
+    { value: 'In Good Standing', label: 'In Good Standing' },
+  ],
+}
+
+const DEFAULT_REVIEW_FILTER: Record<UrgencySectionId, ReviewFilter> = {
+  requiresActionToday: 'unreviewed',
+  monitorClosely: 'unreviewed',
+  noActionRequired: 'all',
 }
 
 function formatDate(iso: string): string {
@@ -69,6 +103,49 @@ function DetailItem({ label, value }: { label: string; value: string }) {
       <dd className="mt-0.5 text-sm text-brand-text">{value}</dd>
     </div>
   )
+}
+
+function matchesStatusFilter(row: ProductAlertRow, statusFilter: string): boolean {
+  if (statusFilter === 'all') return true
+  if (statusFilter === 'nearThreshold') return isNearThreshold(row)
+  return row.statuses.includes(statusFilter as StatusLabel)
+}
+
+function matchesSearch(row: ProductAlertRow, searchQuery: string): boolean {
+  const query = searchQuery.trim().toLowerCase()
+  if (!query) return true
+  return (
+    row.productName.toLowerCase().includes(query) ||
+    row.brand.toLowerCase().includes(query)
+  )
+}
+
+function matchesReviewFilter(row: ProductAlertRow, filter: ReviewFilter): boolean {
+  if (filter === 'unreviewed') return !row.reviewed
+  if (filter === 'reviewed') return Boolean(row.reviewed)
+  return true
+}
+
+function getPageNumbers(current: number, total: number): (number | 'ellipsis')[] {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1)
+  }
+
+  const pages = new Set<number>()
+  pages.add(1)
+  pages.add(total)
+  for (let p = current - 1; p <= current + 1; p += 1) {
+    if (p >= 1 && p <= total) pages.add(p)
+  }
+
+  const sorted = [...pages].sort((a, b) => a - b)
+  const result: (number | 'ellipsis')[] = []
+  for (let i = 0; i < sorted.length; i += 1) {
+    const page = sorted[i]
+    if (i > 0 && page - sorted[i - 1] > 1) result.push('ellipsis')
+    result.push(page)
+  }
+  return result
 }
 
 function ProductRows({
@@ -230,21 +307,6 @@ const SECTION_HEADER_STYLES: Record<
   },
 }
 
-const REVIEW_FILTERS: { value: ReviewFilter; label: string }[] = [
-  { value: 'unreviewed', label: 'Unreviewed' },
-  { value: 'all', label: 'All' },
-  { value: 'reviewed', label: 'Reviewed' },
-]
-
-function filterRowsByReview(
-  rows: ProductAlertRow[],
-  filter: ReviewFilter,
-): ProductAlertRow[] {
-  if (filter === 'unreviewed') return rows.filter((row) => !row.reviewed)
-  if (filter === 'reviewed') return rows.filter((row) => Boolean(row.reviewed))
-  return rows
-}
-
 function UrgencySectionBlock({
   section,
   defaultOpen,
@@ -258,27 +320,86 @@ function UrgencySectionBlock({
   setExpandedId: (id: string | null) => void
   onToggleReviewed: (id: string) => void
 }) {
+  const defaultReview = DEFAULT_REVIEW_FILTER[section.id]
+
   const [open, setOpen] = useState(defaultOpen)
-  const [showAll, setShowAll] = useState(false)
-  const [reviewFilter, setReviewFilter] = useState<ReviewFilter>('unreviewed')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [brandFilter, setBrandFilter] = useState('all')
+  const [reviewFilter, setReviewFilter] = useState<ReviewFilter>(defaultReview)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState<PageSize>(10)
 
-  const filteredRows = useMemo(
-    () => filterRowsByReview(section.rows, reviewFilter),
-    [section.rows, reviewFilter],
-  )
+  const brandOptions = useMemo(() => {
+    const brands = [
+      ...new Set(section.rows.map((row) => row.brand).filter(Boolean)),
+    ]
+    return brands.sort((a, b) => a.localeCompare(b))
+  }, [section.rows])
 
-  const visibleRows = showAll
-    ? filteredRows
-    : filteredRows.slice(0, SECTION_PAGE_SIZE)
-  const hasMore = filteredRows.length > SECTION_PAGE_SIZE
+  const filteredRows = useMemo(() => {
+    return section.rows.filter(
+      (row) =>
+        matchesSearch(row, searchQuery) &&
+        matchesStatusFilter(row, statusFilter) &&
+        (brandFilter === 'all' || row.brand === brandFilter) &&
+        matchesReviewFilter(row, reviewFilter),
+    )
+  }, [section.rows, searchQuery, statusFilter, brandFilter, reviewFilter])
+
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize))
+  const currentPage = Math.min(page, totalPages)
+  const startIndex = filteredRows.length === 0 ? 0 : (currentPage - 1) * pageSize
+  const endIndex =
+    filteredRows.length === 0
+      ? 0
+      : Math.min(startIndex + pageSize, filteredRows.length)
+  const visibleRows = filteredRows.slice(startIndex, endIndex)
+  const pageNumbers = getPageNumbers(currentPage, totalPages)
+
   const styles = SECTION_HEADER_STYLES[section.id]
+  const statusOptions = STATUS_OPTIONS[section.id]
 
-  const emptyFilterMessage =
-    reviewFilter === 'unreviewed'
-      ? 'No unreviewed products in this section.'
-      : reviewFilter === 'reviewed'
-        ? 'No reviewed products in this section.'
-        : 'None right now.'
+  const filtersAreDirty =
+    searchQuery.trim() !== '' ||
+    statusFilter !== 'all' ||
+    brandFilter !== 'all' ||
+    reviewFilter !== defaultReview ||
+    pageSize !== 10
+
+  const clearFilters = () => {
+    setSearchQuery('')
+    setStatusFilter('all')
+    setBrandFilter('all')
+    setReviewFilter(defaultReview)
+    setPageSize(10)
+    setPage(1)
+  }
+
+  const updateSearch = (value: string) => {
+    setSearchQuery(value)
+    setPage(1)
+  }
+
+  const updateStatus = (value: string) => {
+    setStatusFilter(value)
+    setPage(1)
+  }
+
+  const updateBrand = (value: string) => {
+    setBrandFilter(value)
+    setPage(1)
+  }
+
+  const updateReview = (value: ReviewFilter) => {
+    setReviewFilter(value)
+    setPage(1)
+  }
+
+  const updatePageSize = (value: PageSize) => {
+    setPageSize(value)
+    setPage(1)
+  }
 
   return (
     <section className="overflow-hidden rounded-2xl border border-brand-border bg-brand-white shadow-sm">
@@ -315,45 +436,73 @@ function UrgencySectionBlock({
             </p>
           ) : (
             <>
-              <div className="flex flex-wrap items-center gap-2 border-t border-brand-border bg-brand-white px-5 py-3 sm:px-6">
-                <span className="text-xs font-medium uppercase tracking-wide text-brand-muted">
-                  Show
-                </span>
-                <div
-                  className="inline-flex rounded-lg border border-brand-border p-0.5"
-                  role="group"
-                  aria-label={`Filter ${section.title} by review status`}
+              <div className="flex flex-wrap items-center gap-3 border-t border-brand-border bg-brand-white px-5 py-3 sm:px-6">
+                <input
+                  type="search"
+                  value={searchQuery}
+                  onChange={(e) => updateSearch(e.target.value)}
+                  placeholder="Search products or brands..."
+                  aria-label={`Search ${section.title}`}
+                  className={`min-w-[200px] flex-1 ${SELECT_CLASS}`}
+                />
+                <select
+                  value={statusFilter}
+                  onChange={(e) => updateStatus(e.target.value)}
+                  aria-label={`Filter ${section.title} by status`}
+                  className={SELECT_CLASS}
                 >
-                  {REVIEW_FILTERS.map((option) => {
-                    const isActive = reviewFilter === option.value
-                    return (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={() => {
-                          setReviewFilter(option.value)
-                          setShowAll(false)
-                        }}
-                        className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
-                          isActive
-                            ? 'bg-brand-navy text-white'
-                            : 'text-brand-muted hover:bg-brand-bg hover:text-brand-text'
-                        }`}
-                        aria-pressed={isActive}
-                      >
-                        {option.label}
-                      </button>
-                    )
-                  })}
-                </div>
+                  {statusOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={brandFilter}
+                  onChange={(e) => updateBrand(e.target.value)}
+                  aria-label={`Filter ${section.title} by brand`}
+                  className={SELECT_CLASS}
+                >
+                  <option value="all">All Brands</option>
+                  {brandOptions.map((brand) => (
+                    <option key={brand} value={brand}>
+                      {brand}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={reviewFilter}
+                  onChange={(e) =>
+                    updateReview(e.target.value as ReviewFilter)
+                  }
+                  aria-label={`Filter ${section.title} by review status`}
+                  className={SELECT_CLASS}
+                >
+                  <option value="unreviewed">Unreviewed</option>
+                  <option value="all">All</option>
+                  <option value="reviewed">Reviewed</option>
+                </select>
+                {filtersAreDirty && (
+                  <button
+                    type="button"
+                    onClick={clearFilters}
+                    className="ml-auto text-sm font-semibold text-brand-blue hover:text-blue-700"
+                  >
+                    Clear Filters
+                  </button>
+                )}
               </div>
 
               {filteredRows.length === 0 ? (
                 <p className="border-t border-brand-border bg-brand-white px-5 py-4 text-sm text-brand-muted sm:px-6">
-                  {emptyFilterMessage}
+                  No products match the selected filters.
                 </p>
               ) : (
                 <>
+                  <div className="border-t border-brand-border bg-brand-white px-5 py-2.5 text-sm text-brand-muted sm:px-6">
+                    Showing {startIndex + 1}–{endIndex} of {filteredRows.length}{' '}
+                    results
+                  </div>
                   <div className="overflow-x-auto border-t border-brand-border bg-brand-white">
                     <table className="w-full min-w-[960px] text-left text-sm">
                       <thead className="sticky top-0 z-10 bg-brand-bg">
@@ -397,19 +546,76 @@ function UrgencySectionBlock({
                       </tbody>
                     </table>
                   </div>
-                  {hasMore && (
-                    <div className="border-t border-brand-border bg-brand-white px-5 py-3 sm:px-6">
+
+                  <div className="flex flex-col gap-3 border-t border-brand-border bg-brand-white px-5 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                    <label className="flex items-center gap-2 text-sm text-brand-muted">
+                      Rows per page
+                      <select
+                        value={pageSize}
+                        onChange={(e) =>
+                          updatePageSize(Number(e.target.value) as PageSize)
+                        }
+                        className={SELECT_CLASS}
+                        aria-label={`Rows per page for ${section.title}`}
+                      >
+                        {PAGE_SIZE_OPTIONS.map((size) => (
+                          <option key={size} value={size}>
+                            {size}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <div className="flex flex-wrap items-center gap-1">
                       <button
                         type="button"
-                        onClick={() => setShowAll((prev) => !prev)}
-                        className="text-sm font-semibold text-brand-blue hover:text-blue-700"
+                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                        disabled={currentPage <= 1}
+                        className="rounded-lg border border-brand-border px-3 py-1.5 text-sm font-medium text-brand-text transition hover:bg-brand-bg disabled:cursor-not-allowed disabled:opacity-40"
                       >
-                        {showAll
-                          ? 'Show less'
-                          : `View all ${filteredRows.length} records`}
+                        Previous
                       </button>
+                      {pageNumbers.map((item, index) =>
+                        item === 'ellipsis' ? (
+                          <span
+                            key={`ellipsis-${index}`}
+                            className="px-2 text-sm text-brand-muted"
+                          >
+                            …
+                          </span>
+                        ) : (
+                          <button
+                            key={item}
+                            type="button"
+                            onClick={() => setPage(item)}
+                            aria-current={
+                              item === currentPage ? 'page' : undefined
+                            }
+                            className={`min-w-9 rounded-lg px-2.5 py-1.5 text-sm font-medium transition ${
+                              item === currentPage
+                                ? 'bg-brand-navy text-white'
+                                : 'border border-brand-border text-brand-text hover:bg-brand-bg'
+                            }`}
+                          >
+                            {item}
+                          </button>
+                        ),
+                      )}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPage((p) => Math.min(totalPages, p + 1))
+                        }
+                        disabled={currentPage >= totalPages}
+                        className="rounded-lg border border-brand-border px-3 py-1.5 text-sm font-medium text-brand-text transition hover:bg-brand-bg disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        Next
+                      </button>
+                      <span className="ml-2 text-sm text-brand-muted">
+                        Page {currentPage} of {totalPages}
+                      </span>
                     </div>
-                  )}
+                  </div>
                 </>
               )}
             </>
