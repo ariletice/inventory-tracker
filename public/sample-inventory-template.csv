@@ -1,18 +1,19 @@
-SKU,Product Name,Brand,Category,Storage Conditions,Quantity on Hand,Reorder Threshold,Reorder Quantity,Sales Rate,Expiration Date
-FR-MLK-001,Whole Milk,FreshRoute Dairy,Milk,Refrigerated 34–38°F,8,24,48,12,2026-07-26
-FR-MLK-002,2% Milk,FreshRoute Dairy,Milk,Refrigerated 34–38°F,36,30,48,10,2026-08-01
-VC-MLK-003,Skim Milk,Valley Crest,Milk,Refrigerated 34–38°F,0,18,36,6,2026-08-03
-VC-MLK-004,Chocolate Milk,Valley Crest,Milk,Refrigerated 34–38°F,14,16,24,5,2026-07-28
-OF-YOG-005,Greek Yogurt,Olympus Farms,Yogurt,Refrigerated 34–38°F,22,20,40,4,2026-07-31
-OF-YOG-006,Strawberry Yogurt,Olympus Farms,Yogurt,Refrigerated 34–38°F,5,15,30,4,2026-07-25
-HC-CHS-007,Cheddar Cheese,Heritage Creamery,Cheese,Refrigerated 34–40°F,48,20,24,3,2026-09-05
-HC-CHS-008,Mozzarella Cheese,Heritage Creamery,Cheese,Refrigerated 34–40°F,18,16,24,3,2026-08-02
-MB-BTR-009,Salted Butter,Meadow Brook,Butter,Refrigerated or frozen,12,20,36,5,2026-08-11
-MB-BTR-010,Unsalted Butter,Meadow Brook,Butter,Refrigerated or frozen,28,18,36,3,2026-08-16
-FR-CRM-011,Heavy Cream,FreshRoute Dairy,Cream,Refrigerated 34–38°F,3,12,24,4,2026-07-24
-FR-CRM-012,Half-and-Half,FreshRoute Dairy,Cream,Refrigerated 34–38°F,20,16,24,3,2026-07-30
-OF-CHS-013,Cottage Cheese,Olympus Farms,Cheese,Refrigerated 34–38°F,7,10,20,2,2026-07-21
-VC-CRM-014,Sour Cream,Valley Crest,Cream,Refrigerated 34–38°F,16,14,24,2,2026-08-04
-HC-CHS-015,Cream Cheese,Heritage Creamery,Cheese,Refrigerated 34–38°F,9,12,24,2,2026-07-27
-OF-YOG-016,Vanilla Yogurt,Olympus Farms,Yogurt,Refrigerated 34–38°F,32,20,40,5,2026-08-05
-HC-CHS-017,String Cheese,Heritage Creamery,Cheese,Refrigerated 34–40°F,55,24,48,4,2026-08-21
+Product ID,Product Name,Brand,Quantity in Stock (liters/kg),Minimum Stock Threshold (liters/kg),Reorder Quantity (liters/kg),Production Date,Expiration Date,Shelf Life (days),Quantity Sold (liters/kg),Storage Condition,Location
+FR-MLK-001,Whole Milk,FreshRoute Dairy,8,24,48,2026-07-12,2026-07-26,14,12,Refrigerated 34–38°F,Cooler A
+FR-MLK-001,Whole Milk,FreshRoute Dairy,18,24,48,2026-07-18,2026-08-01,14,6,Refrigerated 34–38°F,Cooler B
+FR-MLK-002,2% Milk,FreshRoute Dairy,36,30,48,2026-07-20,2026-08-03,14,10,Refrigerated 34–38°F,Cooler A
+VC-MLK-003,Skim Milk,Valley Crest,0,18,36,2026-07-15,2026-08-05,14,6,Refrigerated 34–38°F,Cooler B
+VC-MLK-004,Chocolate Milk,Valley Crest,14,16,24,2026-07-14,2026-07-28,14,5,Refrigerated 34–38°F,Cooler A
+OF-YOG-005,Greek Yogurt,Olympus Farms,22,20,40,2026-07-10,2026-07-31,21,4,Refrigerated 34–38°F,Cooler C
+OF-YOG-006,Strawberry Yogurt,Olympus Farms,5,15,30,2026-07-11,2026-07-25,14,4,Refrigerated 34–38°F,Cooler C
+HC-CHS-007,Cheddar Cheese,Heritage Creamery,48,20,24,2026-06-20,2026-09-05,60,3,Refrigerated 34–40°F,Cooler D
+HC-CHS-008,Mozzarella Cheese,Heritage Creamery,18,16,24,2026-07-05,2026-08-02,30,3,Refrigerated 34–40°F,Cooler D
+MB-BTR-009,Salted Butter,Meadow Brook,12,20,36,2026-07-01,2026-08-11,45,5,Refrigerated or frozen,Freezer 1
+MB-BTR-010,Unsalted Butter,Meadow Brook,28,18,36,2026-07-02,2026-08-16,45,3,Refrigerated or frozen,Freezer 1
+FR-CRM-011,Heavy Cream,FreshRoute Dairy,3,12,24,2026-07-13,2026-07-24,14,4,Refrigerated 34–38°F,Cooler A
+FR-CRM-012,Half-and-Half,FreshRoute Dairy,20,16,24,2026-07-16,2026-07-30,14,3,Refrigerated 34–38°F,Cooler A
+OF-CHS-013,Cottage Cheese,Olympus Farms,7,10,20,2026-07-08,2026-07-21,14,2,Refrigerated 34–38°F,Cooler C
+VC-CRM-014,Sour Cream,Valley Crest,16,14,24,2026-07-17,2026-08-04,21,2,Refrigerated 34–38°F,Cooler B
+HC-CHS-015,Cream Cheese,Heritage Creamery,9,12,24,2026-07-09,2026-07-27,21,2,Refrigerated 34–38°F,Cooler D
+OF-YOG-016,Vanilla Yogurt,Olympus Farms,32,20,40,2026-07-19,2026-08-05,21,5,Refrigerated 34–38°F,Cooler C
+HC-CHS-017,String Cheese,Heritage Creamery,55,24,48,2026-06-25,2026-08-21,45,4,Refrigerated 34–40°F,Cooler D

@@ -5,8 +5,8 @@ import type {
 } from '../types/inventory'
 
 const STATUS_RANK: Record<Exclude<StatusLabel, 'Reviewed'>, number> = {
-  'Out of Stock': 1,
-  Expired: 2,
+  Expired: 1,
+  'Out of Stock': 2,
   'Low Stock': 3,
   'Expiring Soon': 4,
   'No Recent Sales': 5,
@@ -20,6 +20,18 @@ const STATUS_REASONS: Record<Exclude<StatusLabel, 'Reviewed'>, string> = {
   'Expiring Soon': 'Product expires within 14 days',
   'No Recent Sales': 'Sales rate is zero while stock remains',
   'In Good Standing': 'No immediate inventory issues detected',
+}
+
+export type UrgencySectionId =
+  | 'requiresActionToday'
+  | 'monitorClosely'
+  | 'noActionRequired'
+
+export type UrgencySection = {
+  id: UrgencySectionId
+  title: string
+  description: string
+  rows: ProductAlertRow[]
 }
 
 /** Pick action from collected statuses using the coordinator action priority order. */
@@ -130,6 +142,127 @@ export function buildProductAlertRow(
     daysUntilExpiry: daysUntilExpiry(product.expirationDate, today),
     sortRank: STATUS_RANK[primaryKey],
   }
+}
+
+function isExpired(row: ProductAlertRow): boolean {
+  return row.statuses.includes('Expired')
+}
+
+function isOutOfStock(row: ProductAlertRow): boolean {
+  return row.quantityInStock === 0
+}
+
+function isLowStock(row: ProductAlertRow): boolean {
+  return (
+    row.quantityInStock > 0 &&
+    row.quantityInStock <= row.minimumStockThreshold
+  )
+}
+
+function isExpiringSoon(row: ProductAlertRow): boolean {
+  return row.statuses.includes('Expiring Soon')
+}
+
+export function isNearThreshold(row: ProductAlertRow): boolean {
+  const threshold = row.minimumStockThreshold
+  const qty = row.quantityInStock
+  return qty > threshold && qty <= threshold * 1.25
+}
+
+function requiresActionRank(row: ProductAlertRow): number {
+  if (isExpired(row)) return 0
+  if (isOutOfStock(row)) return 1
+  if (isLowStock(row)) return 2
+  return 3
+}
+
+function compareRequiresAction(a: ProductAlertRow, b: ProductAlertRow): number {
+  const rankDiff = requiresActionRank(a) - requiresActionRank(b)
+  if (rankDiff !== 0) return rankDiff
+
+  if (isExpired(a) && isExpired(b)) {
+    return a.daysUntilExpiry - b.daysUntilExpiry
+  }
+
+  if (a.quantityInStock !== b.quantityInStock) {
+    return a.quantityInStock - b.quantityInStock
+  }
+
+  return a.daysUntilExpiry - b.daysUntilExpiry
+}
+
+function compareMonitorClosely(a: ProductAlertRow, b: ProductAlertRow): number {
+  if (a.daysUntilExpiry !== b.daysUntilExpiry) {
+    return a.daysUntilExpiry - b.daysUntilExpiry
+  }
+
+  const aDistance = a.quantityInStock - a.minimumStockThreshold
+  const bDistance = b.quantityInStock - b.minimumStockThreshold
+  if (aDistance !== bDistance) return aDistance - bDistance
+
+  return a.quantityInStock - b.quantityInStock
+}
+
+function compareNoActionRequired(a: ProductAlertRow, b: ProductAlertRow): number {
+  if (a.daysUntilExpiry !== b.daysUntilExpiry) {
+    return a.daysUntilExpiry - b.daysUntilExpiry
+  }
+  if (a.quantityInStock !== b.quantityInStock) {
+    return a.quantityInStock - b.quantityInStock
+  }
+  return 0
+}
+
+function assignUrgencySection(row: ProductAlertRow): UrgencySectionId {
+  if (isExpired(row) || isOutOfStock(row) || isLowStock(row)) {
+    return 'requiresActionToday'
+  }
+  if (isExpiringSoon(row) || isNearThreshold(row)) {
+    return 'monitorClosely'
+  }
+  return 'noActionRequired'
+}
+
+export function groupProductsByUrgency(
+  products: InventoryProduct[],
+): UrgencySection[] {
+  const buckets: Record<UrgencySectionId, ProductAlertRow[]> = {
+    requiresActionToday: [],
+    monitorClosely: [],
+    noActionRequired: [],
+  }
+
+  for (const product of products) {
+    const row = buildProductAlertRow(product)
+    buckets[assignUrgencySection(row)].push(row)
+  }
+
+  buckets.requiresActionToday.sort(compareRequiresAction)
+  buckets.monitorClosely.sort(compareMonitorClosely)
+  buckets.noActionRequired.sort(compareNoActionRequired)
+
+  return [
+    {
+      id: 'requiresActionToday',
+      title: 'Requires Action Today',
+      description:
+        'Expired, out-of-stock, and low-stock items needing review now.',
+      rows: buckets.requiresActionToday,
+    },
+    {
+      id: 'monitorClosely',
+      title: 'Monitor Closely',
+      description:
+        'Nearing stock threshold or expiration; action may be needed soon.',
+      rows: buckets.monitorClosely,
+    },
+    {
+      id: 'noActionRequired',
+      title: 'No Action Required',
+      description: 'Healthy stock levels with no near-term expiration concerns.',
+      rows: buckets.noActionRequired,
+    },
+  ]
 }
 
 export function sortProductAlertRows(rows: ProductAlertRow[]): ProductAlertRow[] {
