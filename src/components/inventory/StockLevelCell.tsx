@@ -1,6 +1,9 @@
+import type { StatusLabel } from '../../types/inventory'
+
 type StockLevelCellProps = {
   quantityInStock: number
   minimumStockThreshold: number
+  statuses?: StatusLabel[]
 }
 
 function isValidThreshold(threshold: number): boolean {
@@ -11,7 +14,10 @@ function isValidThreshold(threshold: number): boolean {
   )
 }
 
-function barFillClass(displayPercentage: number, quantityInStock: number): string {
+function stockLadderFill(
+  displayPercentage: number,
+  quantityInStock: number,
+): string {
   if (quantityInStock === 0 || displayPercentage === 0) {
     return 'bg-brand-danger'
   }
@@ -21,23 +27,60 @@ function barFillClass(displayPercentage: number, quantityInStock: number): strin
   return 'bg-brand-success'
 }
 
+function barFillClass(
+  displayPercentage: number,
+  quantityInStock: number,
+  isExpired: boolean,
+  isExpiringSoon: boolean,
+): string {
+  if (isExpired) {
+    if (quantityInStock === 0 || displayPercentage === 0) {
+      return 'bg-brand-danger'
+    }
+    return 'bg-brand-danger/80'
+  }
+
+  if (isExpiringSoon && displayPercentage > 100) {
+    return 'bg-brand-warning'
+  }
+
+  return stockLadderFill(displayPercentage, quantityInStock)
+}
+
 function percentageTextClass(
   displayPercentage: number,
   quantityInStock: number,
+  isExpired: boolean,
+  isExpiringSoon: boolean,
 ): string {
+  if (isExpired) return 'text-white'
+  if (isExpiringSoon && displayPercentage > 100) return 'text-brand-navy'
   if (quantityInStock === 0 || displayPercentage === 0) return 'text-white'
   if (displayPercentage <= 100) return 'text-white'
   if (displayPercentage <= 125) return 'text-brand-navy'
   return 'text-white'
 }
 
+function urgencyAriaSuffix(
+  isExpired: boolean,
+  isExpiringSoon: boolean,
+): string {
+  if (isExpired) return '; product is expired'
+  if (isExpiringSoon) return '; product is expiring soon'
+  return ''
+}
+
 export function StockLevelCell({
   quantityInStock,
   minimumStockThreshold,
+  statuses = [],
 }: StockLevelCellProps) {
   const quantityLabel = Number.isFinite(quantityInStock)
     ? quantityInStock
     : 'Not provided'
+  const isExpired = statuses.includes('Expired')
+  const isExpiringSoon =
+    !isExpired && statuses.includes('Expiring Soon')
 
   if (!isValidThreshold(minimumStockThreshold)) {
     return (
@@ -51,8 +94,18 @@ export function StockLevelCell({
   const stockPercentage = (quantityInStock / minimumStockThreshold) * 100
   const displayPercentage = Math.round(stockPercentage)
   const barWidth = Math.min(Math.max(stockPercentage, 0), 100)
-  const fillClass = barFillClass(displayPercentage, quantityInStock)
-  const textClass = percentageTextClass(displayPercentage, quantityInStock)
+  const fillClass = barFillClass(
+    displayPercentage,
+    quantityInStock,
+    isExpired,
+    isExpiringSoon,
+  )
+  const textClass = percentageTextClass(
+    displayPercentage,
+    quantityInStock,
+    isExpired,
+    isExpiringSoon,
+  )
   const fillTooNarrow = barWidth < 28
 
   return (
@@ -66,7 +119,7 @@ export function StockLevelCell({
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={Math.min(Math.max(displayPercentage, 0), 100)}
-        aria-label={`Stock level is ${displayPercentage} percent of the minimum threshold`}
+        aria-label={`Stock level is ${displayPercentage} percent of the minimum threshold${urgencyAriaSuffix(isExpired, isExpiringSoon)}`}
       >
         <div
           className={`absolute inset-y-0 left-0 ${fillClass}`}

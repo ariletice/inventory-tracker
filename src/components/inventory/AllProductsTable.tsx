@@ -219,6 +219,7 @@ function ProductRows({
                 <StockLevelCell
                   quantityInStock={row.quantityInStock}
                   minimumStockThreshold={row.minimumStockThreshold}
+                  statuses={row.statuses}
                 />
               </td>
               <td className="px-3 py-3 align-middle text-brand-muted">
