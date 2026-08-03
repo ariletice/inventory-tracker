@@ -244,9 +244,9 @@ export function groupProductsByUrgency(
   return [
     {
       id: 'requiresActionToday',
-      title: 'Requires Action Today',
+      title: 'Needs Attention Today',
       description:
-        'Expired, out-of-stock, and low-stock items needing review now.',
+        'Products flagged for expiration, low stock, or availability risks.',
       rows: buckets.requiresActionToday,
     },
     {

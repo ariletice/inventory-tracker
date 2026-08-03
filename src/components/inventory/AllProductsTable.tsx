@@ -3,6 +3,7 @@ import {
   ChevronDown,
   CircleCheck,
   Eye,
+  Info,
   Search,
   TriangleAlert,
   Upload,
@@ -19,6 +20,7 @@ import type {
   ProductAlertRow,
   StatusLabel,
 } from '../../types/inventory'
+import { ExpirationCell } from './ExpirationCell'
 import { StatusBadge } from './StatusBadge'
 import { StockLevelCell } from './StockLevelCell'
 
@@ -221,8 +223,11 @@ function ProductRows({
                   minimumStockThreshold={row.minimumStockThreshold}
                 />
               </td>
-              <td className="px-3 py-3 align-middle text-brand-muted">
-                {formatDate(row.expirationDate)}
+              <td className="px-3 py-3 align-middle">
+                <ExpirationCell
+                  expirationDate={row.expirationDate}
+                  daysUntilExpiry={row.daysUntilExpiry}
+                />
               </td>
               <td className="px-3 py-3 align-middle">
                 <div className="flex flex-wrap gap-1.5">
@@ -599,7 +604,22 @@ function UrgencySectionBlock({
                             Category
                           </th>
                           <th scope="col" className="px-3 py-3">
-                            Stock Level (liters/kg)
+                            <span className="inline-flex items-center gap-1">
+                              Stock Level
+                              <span
+                                className="inline-flex text-brand-muted normal-case"
+                                title="Compares current inventory against minimum required levels."
+                              >
+                                <Info
+                                  className="h-3.5 w-3.5"
+                                  aria-hidden="true"
+                                />
+                                <span className="sr-only">
+                                  Compares current inventory against minimum
+                                  required levels.
+                                </span>
+                              </span>
+                            </span>
                           </th>
                           <th scope="col" className="px-3 py-3">
                             Expiration
