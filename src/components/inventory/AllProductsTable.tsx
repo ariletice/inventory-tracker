@@ -20,6 +20,7 @@ import type {
   ProductAlertRow,
   StatusLabel,
 } from '../../types/inventory'
+import { ExpirationCell } from './ExpirationCell'
 import { StatusBadge } from './StatusBadge'
 import { StockLevelCell } from './StockLevelCell'
 
@@ -222,8 +223,11 @@ function ProductRows({
                   minimumStockThreshold={row.minimumStockThreshold}
                 />
               </td>
-              <td className="px-3 py-3 align-middle text-brand-muted">
-                {formatDate(row.expirationDate)}
+              <td className="px-3 py-3 align-middle">
+                <ExpirationCell
+                  expirationDate={row.expirationDate}
+                  daysUntilExpiry={row.daysUntilExpiry}
+                />
               </td>
               <td className="px-3 py-3 align-middle">
                 <div className="flex flex-wrap gap-1.5">
